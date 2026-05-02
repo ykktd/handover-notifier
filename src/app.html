@@ -1,0 +1,574 @@
+<script>
+/* ============================================================
+ * 引き継ぎ通知Bot — フロントエンド SPA
+ *
+ * 設計：
+ *   - 単一のグローバルステートを保持し、setState() で再描画
+ *   - 画面ごとの render*() 関数が HTML 文字列を返す
+ *   - クリックは data-action 属性で識別し、bindEvents() で委譲
+ *   - バックエンド呼び出しは call() で Promise 化
+ *
+ * GAS バックエンド API（Code.gs）：
+ *   apiBootstrap, apiSaveNotification, apiDeleteNotification,
+ *   apiSendNow, apiSaveSettings, apiDuplicateForNewYear, apiDeleteAll
+ * ============================================================ */
+
+(function () {
+  'use strict';
+
+  /* --- インラインアイコン（ワイヤーフレームから移植） --- */
+  const ICONS = {
+    plus: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    settings: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+    back: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
+    send: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+    edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>',
+    copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+    link: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+    slack: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.52 2.528 2.528 0 01-2.522-2.52 2.528 2.528 0 012.522-2.52h2.52v2.52zm1.271 0a2.528 2.528 0 012.52-2.52 2.528 2.528 0 012.52 2.52v6.313a2.528 2.528 0 01-2.52 2.522 2.528 2.528 0 01-2.52-2.522v-6.313zm2.52-10.123a2.528 2.528 0 01-2.52-2.52A2.528 2.528 0 018.833 0a2.528 2.528 0 012.52 2.522v2.52H8.833zm0 1.271a2.528 2.528 0 012.52 2.52 2.528 2.528 0 01-2.52 2.52H2.522A2.528 2.528 0 010 8.833a2.528 2.528 0 012.522-2.52H8.833zm10.123 2.52a2.528 2.528 0 012.522-2.52A2.528 2.528 0 0124 8.833a2.528 2.528 0 01-2.522 2.52h-2.522V8.833zm-1.268 0a2.528 2.528 0 01-2.52 2.52 2.528 2.528 0 01-2.522-2.52V2.522A2.528 2.528 0 0115.165 0a2.528 2.528 0 012.52 2.522V8.833zm-2.52 10.123a2.528 2.528 0 012.52 2.522A2.528 2.528 0 0115.165 24a2.528 2.528 0 01-2.52-2.522v-2.522h2.52zm0-1.268a2.528 2.528 0 01-2.52-2.52 2.528 2.528 0 012.52-2.522h6.313A2.528 2.528 0 0124 15.165a2.528 2.528 0 01-2.522 2.52h-6.313z"/></svg>',
+    mail: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>'
+  };
+
+  const MONTH_LABELS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  /* --- ステート --- */
+  let state = {
+    screen: 'list',
+    notifications: [],
+    settings: { slackWebhookUrl: '', gmailAddresses: '' },
+    editTarget: null,
+    testTarget: null,
+    testSent: false,
+    loading: true,
+    busy: false
+  };
+
+  /* --- ユーティリティ --- */
+  const root = () => document.getElementById('app');
+
+  function call(name) {
+    const args = Array.prototype.slice.call(arguments, 1);
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(err => reject(err && err.message ? err : new Error(String(err))))
+        [name].apply(null, args);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatDate(s) {
+    if (!s) return '';
+    const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return s;
+    const d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    const week = ['日','月','火','水','木','金','土'][d.getDay()];
+    return m[1] + '/' + m[2] + '/' + m[3] + '（' + week + '）';
+  }
+
+  function groupByMonth(notifications) {
+    const sorted = notifications.slice().sort((a, b) => a.date.localeCompare(b.date));
+    const groups = {};
+    sorted.forEach(n => {
+      const parts = (n.date || '').split('-');
+      if (parts.length !== 3) return;
+      const m = parseInt(parts[1], 10);
+      if (!m) return;
+      if (!groups[m]) groups[m] = [];
+      groups[m].push(n);
+    });
+    return groups;
+  }
+
+  function setState(patch) {
+    state = Object.assign({}, state, patch);
+    render();
+  }
+
+  function showToast(msg, isError) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (isError ? ' error' : '');
+    el.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { el.hidden = true; }, 2500);
+  }
+
+  function badgeHtml(dest) {
+    return dest === 'slack'
+      ? '<span class="badge badge-slack">' + ICONS.slack + 'Slack</span>'
+      : '<span class="badge badge-gmail">' + ICONS.mail + 'Gmail</span>';
+  }
+
+  // settings.gmailAddresses は CSV 文字列（シートにそのまま書く）。フロント内では配列で扱う。
+  function parseEmails(csv) {
+    return String(csv || '').split(',').map(e => e.trim()).filter(Boolean);
+  }
+  function joinEmails(arr) {
+    return (arr || []).filter(Boolean).join(',');
+  }
+
+  // 非同期アクションの busy 制御 + エラートーストを集約する。
+  // fn 内で state を直接書き換え、成功メッセージを return すれば showToast される。
+  async function runAction(fn, opts) {
+    opts = opts || {};
+    state.busy = true;
+    render();
+    try {
+      const successMsg = await fn();
+      state.busy = false;
+      render();
+      const msg = successMsg || opts.success;
+      if (msg) showToast(msg);
+    } catch (e) {
+      state.busy = false;
+      render();
+      showToast((opts.errorPrefix || 'エラー') + ': ' + e.message, true);
+    }
+  }
+
+  /* ============================================================
+   * 画面①：通知一覧
+   * ============================================================ */
+  function renderList() {
+    const groups = groupByMonth(state.notifications);
+    const months = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+    const monthsHtml = months.map(m => `
+      <section>
+        <div class="section-header">
+          <span class="section-label">${MONTH_LABELS[m - 1]}</span>
+          <div class="section-line"></div>
+          <span class="section-count">${groups[m].length}件</span>
+        </div>
+        ${groups[m].map(renderCard).join('')}
+      </section>
+    `).join('');
+
+    const empty = `
+      <div class="empty">
+        通知がまだありません。<br>
+        右下の「通知を追加」から最初の通知を作りましょう。
+      </div>`;
+
+    const banner = state.notifications.length > 0 ? `
+      <div class="duplicate-banner">
+        <span class="banner-icon">📋</span>
+        <div class="banner-text">
+          <div class="banner-title">前年度スケジュールから複製</div>
+          <div class="banner-sub">日付を+1年してそのまま引き継ぐ</div>
+        </div>
+        <button class="btn-yellow" data-action="duplicate">${ICONS.copy}複製</button>
+      </div>` : '';
+
+    return `
+      <div class="topbar">
+        <div class="logo"><span style="font-size:18px">🔔</span>引き継ぎ通知Bot</div>
+        <button class="icon-btn" data-action="goto-settings" title="設定">${ICONS.settings}</button>
+      </div>
+      <div class="body">
+        ${state.notifications.length === 0 ? empty : monthsHtml}
+        ${banner}
+      </div>
+      <button class="fab" data-action="add">${ICONS.plus}通知を追加</button>
+    `;
+  }
+
+  function renderCard(n) {
+    const preview = n.message
+      ? (n.message.length > 75 ? n.message.slice(0, 75) + '…' : n.message)
+      : '（メッセージ未設定）';
+    return `
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">${escapeHtml(n.title)}</div>
+          <div class="card-actions">
+            <button class="action-btn" data-action="open-test" data-id="${escapeHtml(n.id)}" title="今すぐ送信">${ICONS.send}</button>
+            <button class="action-btn" data-action="edit" data-id="${escapeHtml(n.id)}" title="編集">${ICONS.edit}</button>
+            <button class="action-btn danger" data-action="delete" data-id="${escapeHtml(n.id)}" title="削除">${ICONS.trash}</button>
+          </div>
+        </div>
+        <div class="card-preview">${escapeHtml(preview)}</div>
+        <div class="card-foot">
+          <span class="card-date">${formatDate(n.date)}</span>
+          ${badgeHtml(n.dest)}
+          ${n.link ? '<span class="link-mark">' + ICONS.link + 'リンクあり</span>' : ''}
+          ${n.sent ? '<span class="sent-mark">送信済み</span>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================================
+   * 画面②：通知 追加 / 編集
+   * ============================================================ */
+  function renderEdit() {
+    const f = state.editTarget || { title: '', message: '', date: '', dest: 'slack', link: '' };
+    const isNew = !f.id;
+
+    return `
+      <div class="topbar">
+        <button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>
+        <div class="title">${isNew ? '通知を追加' : '通知を編集'}</div>
+        <div style="width:60px"></div>
+      </div>
+      <div class="body">
+        <div class="msg-card">
+          <label class="label">通知メッセージ<span class="label-sub">* 何をすべきか具体的に書きましょう</span></label>
+          <textarea id="f-message" class="textarea" rows="8"
+            placeholder="例：新歓準備を始める時期です。昨年の会場リストを確認して、仮予約の連絡を今週中に入れておいてください。">${escapeHtml(f.message)}</textarea>
+          <div id="counter" class="counter ${f.message ? 'has-value' : ''}">${(f.message || '').length}文字</div>
+        </div>
+        <div class="form-group">
+          <label class="label">タイトル<span class="label-sub">* 一覧での表示名</span></label>
+          <input id="f-title" class="input" placeholder="例：新歓準備の開始" value="${escapeHtml(f.title)}">
+        </div>
+        <div class="form-group">
+          <label class="label">送信日<span class="label-sub">* この日の朝に自動送信されます</span></label>
+          <input id="f-date" class="input" type="date" value="${escapeHtml(f.date)}">
+        </div>
+        <div class="form-group">
+          <label class="label">送信先</label>
+          <div class="seg">
+            <button class="seg-btn ${f.dest === 'slack' ? 'active' : ''}" data-action="select-dest" data-dest="slack">${ICONS.slack}Slack</button>
+            <button class="seg-btn ${f.dest === 'email' ? 'active' : ''}" data-action="select-dest" data-dest="email">${ICONS.mail}Gmail</button>
+          </div>
+          <div class="seg-help">詳細（Webhook URL・メールアドレス）は<a data-action="goto-settings">設定画面</a>で管理します</div>
+        </div>
+        <div class="form-group">
+          <label class="label">参考リンク<span class="label-sub">任意 — メッセージだけで伝わる場合は不要です</span></label>
+          <input id="f-link" class="input" placeholder="https://docs.google.com/..." value="${escapeHtml(f.link || '')}">
+        </div>
+        <div class="actions">
+          <button class="btn-primary" data-action="save">保存する</button>
+          <button class="btn-secondary" data-action="goto-list">キャンセル</button>
+        </div>
+        ${!isNew ? `
+        <div class="danger-zone">
+          <button class="btn-danger" data-action="delete-current" data-id="${escapeHtml(f.id)}">${ICONS.trash}この通知を削除</button>
+        </div>` : ''}
+      </div>
+    `;
+  }
+
+  /* ============================================================
+   * 画面③：設定
+   * ============================================================ */
+  function renderSettings() {
+    const s = state.settings;
+    const emails = parseEmails(s.gmailAddresses);
+
+    return `
+      <div class="topbar">
+        <button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>
+        <div class="title">送信先の設定</div>
+        <div style="width:60px"></div>
+      </div>
+      <div class="body">
+
+        <div class="section-header">
+          <span class="section-label">${ICONS.slack}Slack</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="panel">
+          <label class="label">Incoming Webhook URL</label>
+          <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="https://hooks.slack.com/services/...">
+          <div class="panel-help">Slack アプリ管理画面の「Incoming Webhooks」から発行できます。送信先チャンネルは Webhook URL 作成時に決まります。</div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-label">${ICONS.mail}Gmail 送信先</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="panel">
+          ${emails.length === 0 ? '<div class="panel-help" style="margin-bottom:8px">まだ登録されていません。</div>' : ''}
+          ${emails.map((email, i) => `
+            <div class="email-row">
+              <div class="email-text">${escapeHtml(email)}</div>
+              <button class="action-btn danger" data-action="remove-email" data-index="${i}" title="削除">${ICONS.trash}</button>
+            </div>
+          `).join('')}
+          <div class="email-add">
+            <input id="s-new-email" class="input" placeholder="メールアドレスを追加" type="email">
+            <button class="btn-primary" data-action="add-email">追加</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%" data-action="save-settings">設定を保存</button>
+
+        <div class="section-header" style="margin-top:40px">
+          <span class="section-label danger">データ管理</span>
+          <div class="section-line danger"></div>
+        </div>
+        <div class="panel danger">
+          <div style="font-weight:700;font-size:13px;margin-bottom:4px">全データを削除</div>
+          <div class="panel-help" style="margin-bottom:12px">全ての通知設定を削除します。この操作は元に戻せません。</div>
+          <button class="btn-danger" data-action="delete-all">${ICONS.trash}全データを削除</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================================
+   * 画面④：今すぐ送信モーダル
+   * ============================================================ */
+  function renderTestModal() {
+    const t = state.testTarget;
+    if (!t) return '';
+
+    if (state.testSent) {
+      return `
+        <div class="overlay" data-action="close-test">
+          <div class="modal modal-success" data-stop-propagation>
+            <div class="icon">✅</div>
+            <div class="modal-title">送信しました</div>
+            <div class="modal-sub">${t.dest === 'slack' ? 'Slackチャンネル' : 'メール'}に通知が届いているか確認してください。</div>
+            <button class="btn-primary" data-action="close-test">閉じる</button>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div class="overlay" data-action="close-test">
+        <div class="modal" data-stop-propagation>
+          <div class="modal-title">今すぐ送信</div>
+          <div class="modal-sub">以下の内容を今すぐ送信して、届くか確認できます。</div>
+          <div style="margin-bottom:12px">${badgeHtml(t.dest)}</div>
+          <div class="modal-preview">
+            <div class="modal-preview-title">${escapeHtml(t.title)}</div>
+            <div class="modal-preview-body">${escapeHtml(t.message || '（メッセージ未設定）')}</div>
+            ${t.link ? '<div class="modal-preview-link">' + ICONS.link + escapeHtml(t.link) + '</div>' : ''}
+          </div>
+          <div class="modal-actions">
+            <button class="btn-test" data-action="send-now" data-id="${escapeHtml(t.id)}" ${state.busy ? 'disabled' : ''}>
+              ${ICONS.send}${state.busy ? '送信中…' : '今すぐ送信'}
+            </button>
+            <button class="btn-secondary" data-action="close-test">キャンセル</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================================
+   * メインレンダリング
+   * ============================================================ */
+  function render() {
+    if (state.loading) {
+      root().innerHTML = '<div class="loader">読み込み中…</div>';
+      return;
+    }
+    let html = '';
+    if (state.screen === 'list') html = renderList();
+    else if (state.screen === 'edit') html = renderEdit();
+    else if (state.screen === 'settings') html = renderSettings();
+    if (state.testTarget) html += renderTestModal();
+    root().innerHTML = html;
+    bindEvents();
+  }
+
+  /* ============================================================
+   * イベントバインド（クリックを data-action で委譲）
+   * ============================================================ */
+  function bindEvents() {
+    document.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', handleAction);
+    });
+    document.querySelectorAll('[data-stop-propagation]').forEach(el => {
+      el.addEventListener('click', e => e.stopPropagation());
+    });
+
+    const ta = document.getElementById('f-message');
+    if (ta) {
+      ta.addEventListener('input', () => {
+        const c = document.getElementById('counter');
+        if (!c) return;
+        c.textContent = ta.value.length + '文字';
+        c.classList.toggle('has-value', ta.value.length > 0);
+      });
+    }
+  }
+
+  function handleAction(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = e.currentTarget;
+    const action = el.getAttribute('data-action');
+    const id = el.getAttribute('data-id');
+
+    switch (action) {
+      case 'goto-list':       return setState({ screen: 'list', editTarget: null });
+      case 'goto-settings':   return setState({ screen: 'settings' });
+      case 'add':             return setState({ screen: 'edit', editTarget: null });
+      case 'edit':            return openEdit(id);
+      case 'open-test':       return openTest(id);
+      case 'close-test':      return setState({ testTarget: null, testSent: false });
+      case 'select-dest':     return selectDest(el.getAttribute('data-dest'));
+      case 'save':            return saveForm();
+      case 'delete':
+      case 'delete-current':  return doDelete(id);
+      case 'send-now':        return doSendNow(id);
+      case 'duplicate':       return doDuplicate();
+      case 'add-email':       return addEmail();
+      case 'remove-email':    return removeEmail(parseInt(el.getAttribute('data-index'), 10));
+      case 'save-settings':   return saveSettingsForm();
+      case 'delete-all':      return doDeleteAll();
+    }
+  }
+
+  /* ============================================================
+   * アクションハンドラ
+   * ============================================================ */
+  function openEdit(id) {
+    const target = state.notifications.find(n => n.id === id);
+    if (!target) return;
+    setState({ screen: 'edit', editTarget: Object.assign({}, target) });
+  }
+
+  function openTest(id) {
+    const target = state.notifications.find(n => n.id === id);
+    if (!target) return;
+    setState({ testTarget: Object.assign({}, target), testSent: false });
+  }
+
+  function selectDest(dest) {
+    if (!state.editTarget) state.editTarget = { title: '', message: '', date: '', dest: 'slack', link: '' };
+    state.editTarget = Object.assign({}, state.editTarget, { dest: dest });
+    // フォーム入力中の値も保持
+    captureForm();
+    state.editTarget.dest = dest;
+    render();
+  }
+
+  function captureForm() {
+    const get = (id) => {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    };
+    if (!state.editTarget) state.editTarget = {};
+    state.editTarget.message = get('f-message');
+    state.editTarget.title = get('f-title');
+    state.editTarget.date = get('f-date');
+    state.editTarget.link = get('f-link');
+  }
+
+  async function saveForm() {
+    captureForm();
+    const f = state.editTarget;
+    if (!f.title || !f.message || !f.date) {
+      alert('タイトル・メッセージ・送信日は必須です');
+      return;
+    }
+    await runAction(async () => {
+      await call('apiSaveNotification', f);
+      const fresh = await call('apiBootstrap');
+      state.notifications = fresh.notifications;
+      state.settings = fresh.settings;
+      state.screen = 'list';
+      state.editTarget = null;
+      return '保存しました';
+    }, { errorPrefix: '保存失敗' });
+  }
+
+  async function doDelete(id) {
+    if (!confirm('この通知を削除しますか？')) return;
+    await runAction(async () => {
+      await call('apiDeleteNotification', id);
+      state.notifications = state.notifications.filter(n => n.id !== id);
+      state.screen = 'list';
+      state.editTarget = null;
+      return '削除しました';
+    }, { errorPrefix: '削除失敗' });
+  }
+
+  async function doSendNow(id) {
+    await runAction(async () => {
+      await call('apiSendNow', id);
+      state.notifications = state.notifications.map(n =>
+        n.id === id ? Object.assign({}, n, { sent: true }) : n
+      );
+      state.testSent = true;
+    }, { errorPrefix: '送信失敗' });
+  }
+
+  async function doDuplicate() {
+    if (!confirm('全ての通知の日付を +1 年し、送信済みフラグをリセットします。よろしいですか？')) return;
+    await runAction(async () => {
+      const count = await call('apiDuplicateForNewYear');
+      const fresh = await call('apiBootstrap');
+      state.notifications = fresh.notifications;
+      state.settings = fresh.settings;
+      return count + ' 件を複製しました';
+    }, { errorPrefix: '複製失敗' });
+  }
+
+  function addEmail() {
+    const input = document.getElementById('s-new-email');
+    if (!input || !input.value.trim()) return;
+    const list = parseEmails(state.settings.gmailAddresses);
+    list.push(input.value.trim());
+    state.settings.gmailAddresses = joinEmails(list);
+    captureSettingsInput();
+    render();
+  }
+
+  function removeEmail(index) {
+    const list = parseEmails(state.settings.gmailAddresses);
+    list.splice(index, 1);
+    state.settings.gmailAddresses = joinEmails(list);
+    captureSettingsInput();
+    render();
+  }
+
+  function captureSettingsInput() {
+    const slack = document.getElementById('s-slack');
+    if (slack) state.settings.slackWebhookUrl = slack.value;
+  }
+
+  async function saveSettingsForm() {
+    captureSettingsInput();
+    await runAction(async () => {
+      await call('apiSaveSettings', state.settings);
+      return '設定を保存しました';
+    }, { errorPrefix: '保存失敗' });
+  }
+
+  async function doDeleteAll() {
+    if (!confirm('全ての通知データを削除します。本当によろしいですか？')) return;
+    if (!confirm('元に戻せません。本当に削除しますか？')) return;
+    await runAction(async () => {
+      await call('apiDeleteAll');
+      state.notifications = [];
+      state.screen = 'list';
+      return '全データを削除しました';
+    }, { errorPrefix: '削除失敗' });
+  }
+
+  /* ============================================================
+   * 起動
+   * ============================================================ */
+  async function init() {
+    try {
+      const data = await call('apiBootstrap');
+      setState({
+        loading: false,
+        notifications: data.notifications || [],
+        settings: data.settings || { slackWebhookUrl: '', gmailAddresses: '' }
+      });
+    } catch (e) {
+      root().innerHTML = '<div class="loader" style="color:#c0392b">初期化エラー: ' + escapeHtml(e.message) + '</div>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
