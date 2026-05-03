@@ -324,7 +324,7 @@ a { color: var(--accent); }
   align-items: center;
   gap: 10px;
 }
-.banner-icon { font-size: 18px; }
+.banner-icon { display: flex; align-items: center; color: var(--yellow); flex-shrink: 0; }
 .banner-text { flex: 1; }
 .banner-title {
   font-weight: 700;
@@ -558,8 +558,10 @@ a { color: var(--accent); }
   text-align: center;
 }
 .modal-success .icon {
-  font-size: 36px;
   margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  color: var(--accent);
 }
 .modal-actions {
   display: flex;
