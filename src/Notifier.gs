@@ -66,7 +66,7 @@ function dailyTrigger() {
   });
 }
 
-/** 初回セットアップ時のみ実行。毎朝 7 時に dailyTrigger を回す。 */
+/** 初回セットアップ時のみ実行。毎朝 8 時に dailyTrigger を回す。 */
 function setupDailyTrigger() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === 'dailyTrigger') ScriptApp.deleteTrigger(t);
@@ -74,6 +74,6 @@ function setupDailyTrigger() {
   ScriptApp.newTrigger('dailyTrigger')
     .timeBased()
     .everyDays(1)
-    .atHour(7)
+    .atHour(8)
     .create();
 }
