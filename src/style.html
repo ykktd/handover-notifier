@@ -25,6 +25,7 @@
   --slack-bg: #f3eef5;
   --gmail-color: #c5221f;
   --gmail-bg: #fdf0ef;
+  --content-max: 640px;
 }
 
 * { box-sizing: border-box; }
@@ -61,14 +62,22 @@ a { color: var(--accent); }
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
   height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   position: sticky;
   top: 0;
   z-index: 100;
 }
+.topbar-inner {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-inner > :first-child { justify-self: start; }
+.topbar-inner > :last-child  { justify-self: end; }
 .topbar .logo {
   font-weight: 700;
   font-size: 15px;
@@ -80,13 +89,14 @@ a { color: var(--accent); }
 .topbar .title {
   font-weight: 700;
   font-size: 15px;
+  text-align: center;
 }
 
 /* ===== ボディ（中央寄せレイアウト） ===== */
 .body {
   flex: 1;
   padding: 20px 16px 100px;
-  max-width: 640px;
+  max-width: var(--content-max);
   margin: 0 auto;
   width: 100%;
 }
@@ -217,14 +227,19 @@ a { color: var(--accent); }
   color: var(--text-mute);
   white-space: nowrap;
 }
+.section-header--spaced { margin-top: 40px; }
 
 /* ===== 通知カード ===== */
+.section-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px 16px;
-  margin-bottom: 8px;
 }
 .card-head {
   display: flex;
@@ -476,6 +491,10 @@ a { color: var(--accent); }
   gap: 8px;
   margin-top: 4px;
 }
+.email-add .input {
+  flex: 1;
+  min-width: 0;
+}
 
 /* ===== モーダル ===== */
 .overlay {
@@ -575,6 +594,12 @@ a { color: var(--accent); }
 
 /* ===== 大画面（≥1024px）===== */
 @media (min-width: 1024px) {
+  :root { --content-max: 880px; }
   .body { padding: 32px 32px 120px; }
+  .section-cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
 }
 </style>

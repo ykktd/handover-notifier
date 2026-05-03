@@ -136,6 +136,17 @@
     }
   }
 
+  function renderTopbar(left, center, right) {
+    return `
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div>${left}</div>
+          <div>${center}</div>
+          <div>${right}</div>
+        </div>
+      </div>`;
+  }
+
   /* ============================================================
    * 画面①：通知一覧
    * ============================================================ */
@@ -150,7 +161,9 @@
           <div class="section-line"></div>
           <span class="section-count">${groups[m].length}件</span>
         </div>
-        ${groups[m].map(renderCard).join('')}
+        <div class="section-cards">
+          ${groups[m].map(renderCard).join('')}
+        </div>
       </section>
     `).join('');
 
@@ -171,10 +184,11 @@
       </div>` : '';
 
     return `
-      <div class="topbar">
-        <div class="logo"><span style="font-size:18px">🔔</span>引き継ぎ通知Bot</div>
-        <button class="icon-btn" data-action="goto-settings" title="設定">${ICONS.settings}</button>
-      </div>
+      ${renderTopbar(
+        `<div class="logo"><span style="font-size:18px">🔔</span>引き継ぎ通知Bot</div>`,
+        '',
+        `<button class="icon-btn" data-action="goto-settings" title="設定">${ICONS.settings}</button>`
+      )}
       <div class="body">
         ${state.notifications.length === 0 ? empty : monthsHtml}
         ${banner}
@@ -216,11 +230,11 @@
     const isNew = !f.id;
 
     return `
-      <div class="topbar">
-        <button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>
-        <div class="title">${isNew ? '通知を追加' : '通知を編集'}</div>
-        <div style="width:60px"></div>
-      </div>
+      ${renderTopbar(
+        `<button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>`,
+        `<div class="title">${isNew ? '通知を追加' : '通知を編集'}</div>`,
+        ''
+      )}
       <div class="body">
         <div class="msg-card">
           <label class="label">通知メッセージ<span class="label-sub">* 何をすべきか具体的に書きましょう</span></label>
@@ -268,11 +282,11 @@
     const emails = parseEmails(s.gmailAddresses);
 
     return `
-      <div class="topbar">
-        <button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>
-        <div class="title">送信先の設定</div>
-        <div style="width:60px"></div>
-      </div>
+      ${renderTopbar(
+        `<button class="icon-btn" data-action="goto-list">${ICONS.back}<span>戻る</span></button>`,
+        `<div class="title">送信先の設定</div>`,
+        ''
+      )}
       <div class="body">
 
         <div class="section-header">
@@ -303,9 +317,9 @@
           </div>
         </div>
 
-        <button class="btn-primary" style="width:100%" data-action="save-settings">設定を保存</button>
+        <button class="btn-primary" data-action="save-settings">設定を保存</button>
 
-        <div class="section-header" style="margin-top:40px">
+        <div class="section-header section-header--spaced">
           <span class="section-label danger">データ管理</span>
           <div class="section-line danger"></div>
         </div>
@@ -443,9 +457,7 @@
   function selectDest(dest) {
     if (!state.editTarget) state.editTarget = { title: '', message: '', date: '', dest: 'slack', link: '' };
     state.editTarget = Object.assign({}, state.editTarget, { dest: dest });
-    // フォーム入力中の値も保持
     captureForm();
-    state.editTarget.dest = dest;
     render();
   }
 
@@ -461,6 +473,12 @@
     state.editTarget.link = get('f-link');
   }
 
+  async function refreshState() {
+    const fresh = await call('apiBootstrap');
+    state.notifications = fresh.notifications;
+    state.settings = fresh.settings;
+  }
+
   async function saveForm() {
     captureForm();
     const f = state.editTarget;
@@ -470,9 +488,7 @@
     }
     await runAction(async () => {
       await call('apiSaveNotification', f);
-      const fresh = await call('apiBootstrap');
-      state.notifications = fresh.notifications;
-      state.settings = fresh.settings;
+      await refreshState();
       state.screen = 'list';
       state.editTarget = null;
       return '保存しました';
@@ -504,29 +520,27 @@
     if (!confirm('全ての通知の日付を +1 年し、送信済みフラグをリセットします。よろしいですか？')) return;
     await runAction(async () => {
       const count = await call('apiDuplicateForNewYear');
-      const fresh = await call('apiBootstrap');
-      state.notifications = fresh.notifications;
-      state.settings = fresh.settings;
+      await refreshState();
       return count + ' 件を複製しました';
     }, { errorPrefix: '複製失敗' });
+  }
+
+  function mutateEmailList(fn) {
+    const list = parseEmails(state.settings.gmailAddresses);
+    fn(list);
+    state.settings.gmailAddresses = joinEmails(list);
+    captureSettingsInput();
+    render();
   }
 
   function addEmail() {
     const input = document.getElementById('s-new-email');
     if (!input || !input.value.trim()) return;
-    const list = parseEmails(state.settings.gmailAddresses);
-    list.push(input.value.trim());
-    state.settings.gmailAddresses = joinEmails(list);
-    captureSettingsInput();
-    render();
+    mutateEmailList(list => list.push(input.value.trim()));
   }
 
   function removeEmail(index) {
-    const list = parseEmails(state.settings.gmailAddresses);
-    list.splice(index, 1);
-    state.settings.gmailAddresses = joinEmails(list);
-    captureSettingsInput();
-    render();
+    mutateEmailList(list => list.splice(index, 1));
   }
 
   function captureSettingsInput() {
