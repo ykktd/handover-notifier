@@ -171,7 +171,7 @@ src/
 └── appsscript.json    # GASマニフェスト（タイムゾーン・OAuthスコープなど）
 ```
 
-設計判断の詳細（なぜこの構成にしたか）：[docs/handover-bot-spec.md](docs/handover-bot-spec.md)
+設計判断の詳細（なぜこの構成にしたか）：[docs/handover-bot-spec.md](docs/handover-bot-spec.md)  
 開発者向けのコード解説ドキュメント（図解付き）：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
