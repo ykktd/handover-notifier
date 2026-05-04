@@ -8,20 +8,20 @@
  */
 
 function doGet() {
-  return HtmlService.createTemplateFromFile('index')
+  return HtmlService.createTemplateFromFile("index")
     .evaluate()
-    .setTitle('引き継ぎ通知Bot')
+    .setTitle("引き継ぎ通知Bot")
     .setFaviconUrl(getFaviconUrl_())
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 function getFaviconUrl_() {
   // Google ドライブのファイルID
   // 元のリンク: https://drive.google.com/file/d/1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B/view?usp=drive_link
-  const fileId = '1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B';
+  const fileId = "1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B";
   // ファイル拡張子を付ける（GAS が画像形式を判別するため）
-  return 'https://drive.google.com/uc?id=' + fileId + '&.png';
+  return "https://drive.google.com/uc?id=" + fileId + "&.png";
 }
 
 function include(filename) {
@@ -39,7 +39,7 @@ function initialize() {
 function apiBootstrap() {
   return {
     notifications: listNotifications(),
-    settings: getSettings()
+    settings: getSettings(),
   };
 }
 
@@ -54,7 +54,7 @@ function apiDeleteNotification(id) {
 
 function apiSendNow(id) {
   const n = getNotification(id);
-  if (!n) throw new Error('通知が見つかりません');
+  if (!n) throw new Error("通知が見つかりません");
   sendNotification(n);
   setSent(id, true);
   return true;
