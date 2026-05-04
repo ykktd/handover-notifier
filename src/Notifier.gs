@@ -61,6 +61,11 @@ function dailyTrigger() {
         setSent(n.id, true);
       } catch (e) {
         console.error('送信失敗 id=' + n.id + ' / ' + e.message);
+        MailApp.sendEmail(
+          Session.getEffectiveUser().getEmail(),
+          '[Handover Notifier] 送信エラー',
+          '通知 id=' + n.id + ' の送信に失敗しました。\n\nエラー: ' + e.message
+        );
       }
     }
   });
