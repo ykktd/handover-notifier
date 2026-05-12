@@ -11,7 +11,7 @@
 - `docs/screenshot-edit.png`
 - `docs/screenshot-settings.png`
 
-`preview.html` と `bot-wireframe.jsx` は今回の Step 1 のデザイン調査対象から除外した。
+主な根拠は実アプリのソースとスクリーンショットとし、`preview.html` と `bot-wireframe.jsx` は補助資料として確認する。
 
 ## 全体トーン
 
