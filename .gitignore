@@ -2,3 +2,5 @@
 preview.html
 preview-*.png
 .claude
+docs/slide-deck
+!docs/slide-deck/アプリ紹介スライド.pdf
