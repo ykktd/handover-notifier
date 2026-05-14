@@ -43,7 +43,7 @@
 
 手順全体の流れは、以下の動画でも確認できます。  
 
-▶ セットアップ実演動画: [動画を見る](docs/handover-notifier-setup-demo.mp4)  
+**▶ セットアップ実演動画: [動画を見る](https://drive.google.com/file/d/1On-Yh2YJ_eZBdj9w6AsVWSNLK_D-xVy_/view?usp=drive_link)**  
 
 以下では、同じ手順を文章で説明します。
 
