@@ -59,6 +59,7 @@
         const err = new Error('応答がありません（タイムアウト）。操作が完了している場合は一覧で確認してください。');
         err.isTimeout = true;
         reject(err);
+        // google.script.run はタイムアウト後もキャンセルできず、サーバー側の処理は継続する
       }, ms);
     });
     const request = new Promise((resolve, reject) => {
@@ -150,6 +151,10 @@
       state.busy = false;
       render();
       showToast(e.isTimeout ? e.message : (opts.errorPrefix || 'エラー') + ': ' + e.message, true);
+      if (e.isTimeout) {
+        // サーバー側で操作が完了した可能性があるため、バックグラウンドで状態を再取得する
+        refreshState().then(() => render()).catch(() => {});
+      }
     }
   }
 
@@ -525,12 +530,12 @@
     }
     await runAction(async () => {
       const result = await call('apiSaveNotification', f);
-      const saved = (result && result.id) ? result : f;
-      if (f.id && state.notifications.some(n => n.id === saved.id)) {
-        state.notifications = state.notifications.map(n => n.id === saved.id ? saved : n);
+      if (!result || !result.id) throw new Error('サーバーから予期しないレスポンスが返されました');
+      if (f.id && state.notifications.some(n => n.id === result.id)) {
+        state.notifications = state.notifications.map(n => n.id === result.id ? result : n);
       } else {
         // 新規追加、または他端末での削除等でIDが一覧にない場合は末尾に追加
-        state.notifications = state.notifications.concat([saved]);
+        state.notifications = state.notifications.concat([result]);
       }
       state.screen = 'list';
       state.editTarget = null;
