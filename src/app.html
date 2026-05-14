@@ -154,20 +154,6 @@
         ? e.message
         : (opts.errorPrefix || 'エラー') + ': ' + e.message;
       showToast(toastMsg, true);
-      if (e.isTimeout) {
-        // サーバー側で操作が完了した可能性があるため、バックグラウンドで状態を再取得する。
-        // スナップショット比較により、再取得完了前にユーザーが別の操作を行った場合は上書きしない。
-        const snapshot = state.notifications;
-        call('apiBootstrap')
-          .then(fresh => {
-            if (state.notifications === snapshot && !state.busy && fresh) {
-              state.notifications = fresh.notifications || [];
-              state.settings = fresh.settings || state.settings;
-              render();
-            }
-          })
-          .catch(() => {});
-      }
     }
   }
 
