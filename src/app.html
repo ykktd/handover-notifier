@@ -52,11 +52,10 @@
   /* --- ユーティリティ --- */
   const root = () => document.getElementById('app');
 
-  function call(name) {
-    const args = Array.prototype.slice.call(arguments, 1);
+  function callMs_(name, args, ms) {
     let timerId;
     const timeout = new Promise((_, reject) => {
-      timerId = setTimeout(() => reject(new Error('応答がありません（タイムアウト）')), 30000);
+      timerId = setTimeout(() => reject(new Error('応答がありません（タイムアウト）。操作が完了している場合は一覧で確認してください。')), ms);
     });
     const request = new Promise((resolve, reject) => {
       google.script.run
@@ -65,6 +64,10 @@
         [name].apply(null, args);
     });
     return Promise.race([request, timeout]).finally(() => clearTimeout(timerId));
+  }
+
+  function call(name) {
+    return callMs_(name, Array.prototype.slice.call(arguments, 1), 30000);
   }
 
   function escapeHtml(s) {
@@ -520,7 +523,9 @@
       const result = await call('apiSaveNotification', f);
       const saved = (result && result.id) ? result : f;
       if (f.id) {
-        state.notifications = state.notifications.map(n => n.id === saved.id ? saved : n);
+        const updated = state.notifications.map(n => n.id === saved.id ? saved : n);
+        // 他端末での削除等でIDが一覧にない場合は末尾に追加
+        state.notifications = updated.some(n => n.id === saved.id) ? updated : updated.concat([saved]);
       } else {
         state.notifications = state.notifications.concat([saved]);
       }
@@ -607,7 +612,7 @@
    * ============================================================ */
   async function init() {
     try {
-      const data = await call('apiBootstrap');
+      const data = await callMs_('apiBootstrap', [], 60000);
       setState({
         loading: false,
         notifications: data.notifications || [],
