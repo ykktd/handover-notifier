@@ -6,7 +6,7 @@
  *   - 単一のグローバルステートを保持し、setState() で再描画
  *   - 画面ごとの render*() 関数が HTML 文字列を返す
  *   - クリックは data-action 属性で識別し、bindEvents() で委譲
- *   - バックエンド呼び出しは call() で Promise 化
+ *   - バックエンド呼び出しは call()／callWithTimeout_() で Promise 化
  *
  * GAS バックエンド API（Code.gs）：
  *   apiBootstrap, apiSaveNotification, apiDeleteNotification,
@@ -52,7 +52,7 @@
   /* --- ユーティリティ --- */
   const root = () => document.getElementById('app');
 
-  function callMs_(name, args, ms) {
+  function callWithTimeout_(name, ms, ...args) {
     let timerId;
     const timeout = new Promise((_, reject) => {
       timerId = setTimeout(() => reject(new Error('応答がありません（タイムアウト）。操作が完了している場合は一覧で確認してください。')), ms);
@@ -66,8 +66,8 @@
     return Promise.race([request, timeout]).finally(() => clearTimeout(timerId));
   }
 
-  function call(name) {
-    return callMs_(name, Array.prototype.slice.call(arguments, 1), 30000);
+  function call(name, ...args) {
+    return callWithTimeout_(name, 30000, ...args);
   }
 
   function escapeHtml(s) {
@@ -612,7 +612,7 @@
    * ============================================================ */
   async function init() {
     try {
-      const data = await callMs_('apiBootstrap', [], 60000);
+      const data = await callWithTimeout_('apiBootstrap', 60000);
       setState({
         loading: false,
         notifications: data.notifications || [],
