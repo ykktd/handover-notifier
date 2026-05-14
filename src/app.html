@@ -52,6 +52,9 @@
   /* --- ユーティリティ --- */
   const root = () => document.getElementById('app');
 
+  const DEFAULT_TIMEOUT_MS = 30000;
+  const LONG_TIMEOUT_MS = 60000;
+
   function callWithTimeout_(name, ms, ...args) {
     let timerId;
     const timeout = new Promise((_, reject) => {
@@ -72,7 +75,7 @@
   }
 
   function call(name, ...args) {
-    return callWithTimeout_(name, 30000, ...args);
+    return callWithTimeout_(name, DEFAULT_TIMEOUT_MS, ...args);
   }
 
   function escapeHtml(s) {
@@ -405,13 +408,11 @@
         <div class="skeleton-line skeleton-foot"></div>
       </div>`;
     return `
-      <div class="topbar">
-        <div class="topbar-inner">
-          <div><div class="skeleton-line skeleton-logo"></div></div>
-          <div></div>
-          <div><div class="skeleton-line skeleton-icon"></div></div>
-        </div>
-      </div>
+      ${renderTopbar(
+        '<div class="skeleton-line skeleton-logo"></div>',
+        '',
+        '<div class="skeleton-line skeleton-icon"></div>'
+      )}
       <div class="body skeleton-body-wrap">
         ${card}${card}${card}
       </div>`;
@@ -530,13 +531,10 @@
     await runAction(async () => {
       const result = await call('apiSaveNotification', f);
       if (!result || !result.id) throw new Error('サーバーから予期しないレスポンスが返されました');
-      // apiSaveNotification は通知リストのみを変更するため、設定の再取得は不要
-      if (f.id && state.notifications.some(n => n.id === result.id)) {
-        state.notifications = state.notifications.map(n => n.id === result.id ? result : n);
-      } else {
-        // 新規追加、または他端末での削除等でIDが一覧にない場合は末尾に追加
-        state.notifications = state.notifications.concat([result]);
-      }
+      const exists = state.notifications.some(n => n.id === result.id);
+      state.notifications = exists
+        ? state.notifications.map(n => n.id === result.id ? result : n)
+        : state.notifications.concat([result]);
       state.screen = 'list';
       state.editTarget = null;
       return '保存しました';
@@ -556,7 +554,7 @@
 
   async function doSendNow(id) {
     await runAction(async () => {
-      await callWithTimeout_('apiSendNow', 60000, id);
+      await callWithTimeout_('apiSendNow', LONG_TIMEOUT_MS, id);
       state.notifications = state.notifications.map(n =>
         n.id === id ? Object.assign({}, n, { sent: true }) : n
       );
@@ -567,7 +565,7 @@
   async function doDuplicate() {
     if (!confirm('全ての通知の日付を +1 年し、送信済みフラグをリセットします。よろしいですか？')) return;
     await runAction(async () => {
-      const count = await callWithTimeout_('apiDuplicateForNewYear', 60000);
+      const count = await callWithTimeout_('apiDuplicateForNewYear', LONG_TIMEOUT_MS);
       await refreshState();
       return count + ' 件を複製しました';
     }, { errorPrefix: '複製失敗' });
@@ -608,7 +606,7 @@
     if (!confirm('全ての通知データを削除します。本当によろしいですか？')) return;
     if (!confirm('元に戻せません。本当に削除しますか？')) return;
     await runAction(async () => {
-      await callWithTimeout_('apiDeleteAll', 60000);
+      await callWithTimeout_('apiDeleteAll', LONG_TIMEOUT_MS);
       state.notifications = [];
       state.screen = 'list';
       return '全データを削除しました';
@@ -620,7 +618,7 @@
    * ============================================================ */
   async function init() {
     try {
-      const data = await callWithTimeout_('apiBootstrap', 60000);
+      const data = await callWithTimeout_('apiBootstrap', LONG_TIMEOUT_MS);
       setState({
         loading: false,
         notifications: data.notifications || [],
