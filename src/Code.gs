@@ -44,14 +44,15 @@ function include(filename) {
 function initialize() {
   ensureSheets();
 
+  const ui = SpreadsheetApp.getUi();
   const settings = getSettings();
   if (settings.setupOwner) {
-    SpreadsheetApp.getUi().alert(
+    ui.alert(
       'セットアップ済みです',
       'このBotはすでにセットアップ済みです（設定者: ' + settings.setupOwner + '）。\n\n' +
         '通知の追加・編集はウェブアプリから行ってください。\n' +
         'トリガーを再設定したい場合は、settings シートの setupOwner 行を削除してから再実行してください。',
-      SpreadsheetApp.getUi().ButtonSet.OK
+      ui.ButtonSet.OK
     );
     return;
   }
@@ -59,19 +60,20 @@ function initialize() {
   setupDailyTrigger();
   saveSettings(Object.assign({}, settings, { setupOwner: Session.getEffectiveUser().getEmail() }));
 
-  SpreadsheetApp.getUi().alert(
+  ui.alert(
     'セットアップ完了',
     'シートとトリガーの設定が完了しました。\n\n' +
       '次のステップ：\n' +
       'メニュー「引き継ぎBot」→「② ウェブアプリのデプロイ手順を確認する」\n' +
       'を開き、手順に従ってウェブアプリを公開してください。',
-    SpreadsheetApp.getUi().ButtonSet.OK
+    ui.ButtonSet.OK
   );
 }
 
 /** デプロイ手順をダイアログで表示する */
 function showDeployGuide() {
-  SpreadsheetApp.getUi().alert(
+  const ui = SpreadsheetApp.getUi();
+  ui.alert(
     'ウェブアプリのデプロイ手順',
     '1. 上部メニュー「拡張機能」→「Apps Script」でGASエディタを開く\n' +
       '2. 右上「デプロイ」→「新しいデプロイ」\n' +
@@ -79,7 +81,7 @@ function showDeployGuide() {
       '4. 次のユーザーとして実行：自分（デプロイする本人）\n' +
       '5. アクセスできるユーザー：Googleアカウントを持つ全員\n' +
       '6. 「デプロイ」→ 表示されるURLが管理画面の入口になります',
-    SpreadsheetApp.getUi().ButtonSet.OK
+    ui.ButtonSet.OK
   );
 }
 
