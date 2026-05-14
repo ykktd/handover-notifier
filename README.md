@@ -30,7 +30,7 @@
 
 ## スクリーンショット
 
-<img src="./docs/screenshot-home.png" alt="通知一覧画面" width="100%" />
+<img src="./docs/screenshot-home.png" alt="通知一覧画面" style="width: 100%;" />
 ホーム — 月ごとのグルーピング、即時送信・編集・削除
 
 ---
