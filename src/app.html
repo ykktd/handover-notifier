@@ -54,12 +54,16 @@
 
   function call(name) {
     const args = Array.prototype.slice.call(arguments, 1);
-    return new Promise((resolve, reject) => {
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('応答がありません（タイムアウト）')), 30000)
+    );
+    const request = new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(err => reject(err && err.message ? err : new Error(String(err))))
         [name].apply(null, args);
     });
+    return Promise.race([request, timeout]);
   }
 
   function escapeHtml(s) {
@@ -381,9 +385,29 @@
   /* ============================================================
    * メインレンダリング
    * ============================================================ */
+  function renderSkeleton() {
+    const card = `
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-body"></div>
+        <div class="skeleton-line skeleton-foot"></div>
+      </div>`;
+    return `
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div><div class="skeleton-line skeleton-logo"></div></div>
+          <div></div>
+          <div><div class="skeleton-line skeleton-icon"></div></div>
+        </div>
+      </div>
+      <div class="body skeleton-body-wrap">
+        ${card}${card}${card}
+      </div>`;
+  }
+
   function render() {
     if (state.loading) {
-      root().innerHTML = '<div class="loader">読み込み中…</div>';
+      root().innerHTML = renderSkeleton();
       return;
     }
     let html = '';
@@ -492,8 +516,12 @@
       return;
     }
     await runAction(async () => {
-      await call('apiSaveNotification', f);
-      await refreshState();
+      const saved = await call('apiSaveNotification', f);
+      if (f.id) {
+        state.notifications = state.notifications.map(n => n.id === saved.id ? saved : n);
+      } else {
+        state.notifications = state.notifications.concat([saved]);
+      }
       state.screen = 'list';
       state.editTarget = null;
       return '保存しました';
