@@ -54,16 +54,17 @@
 
   function call(name) {
     const args = Array.prototype.slice.call(arguments, 1);
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('応答がありません（タイムアウト）')), 30000)
-    );
+    let timerId;
+    const timeout = new Promise((_, reject) => {
+      timerId = setTimeout(() => reject(new Error('応答がありません（タイムアウト）')), 30000);
+    });
     const request = new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(err => reject(err && err.message ? err : new Error(String(err))))
         [name].apply(null, args);
     });
-    return Promise.race([request, timeout]);
+    return Promise.race([request, timeout]).finally(() => clearTimeout(timerId));
   }
 
   function escapeHtml(s) {
@@ -516,7 +517,8 @@
       return;
     }
     await runAction(async () => {
-      const saved = await call('apiSaveNotification', f);
+      const result = await call('apiSaveNotification', f);
+      const saved = (result && result.id) ? result : f;
       if (f.id) {
         state.notifications = state.notifications.map(n => n.id === saved.id ? saved : n);
       } else {
