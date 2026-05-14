@@ -604,4 +604,29 @@ a { color: var(--accent); }
     gap: 8px;
   }
 }
+
+/* ===== スケルトンスクリーン ===== */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skeleton-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+.skeleton-logo  { width: 160px; height: 24px; }
+.skeleton-icon  { width: 32px;  height: 32px; border-radius: 50%; }
+.skeleton-title { width: 55%;   height: 16px; margin-bottom: 10px; }
+.skeleton-body  { width: 90%;   height: 13px; margin-bottom: 8px; }
+.skeleton-foot  { width: 40%;   height: 12px; }
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+.skeleton-body-wrap { padding-top: 16px; }
 </style>

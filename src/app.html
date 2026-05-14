@@ -6,7 +6,7 @@
  *   - 単一のグローバルステートを保持し、setState() で再描画
  *   - 画面ごとの render*() 関数が HTML 文字列を返す
  *   - クリックは data-action 属性で識別し、bindEvents() で委譲
- *   - バックエンド呼び出しは call() で Promise 化
+ *   - バックエンド呼び出しは call()／callWithTimeout_() で Promise 化
  *
  * GAS バックエンド API（Code.gs）：
  *   apiBootstrap, apiSaveNotification, apiDeleteNotification,
@@ -52,14 +52,27 @@
   /* --- ユーティリティ --- */
   const root = () => document.getElementById('app');
 
-  function call(name) {
-    const args = Array.prototype.slice.call(arguments, 1);
-    return new Promise((resolve, reject) => {
+  function callWithTimeout_(name, ms, ...args) {
+    let timerId;
+    const timeout = new Promise((_, reject) => {
+      timerId = setTimeout(() => {
+        const err = new Error('応答がありません（タイムアウト）。操作が完了している場合は一覧で確認してください。');
+        err.isTimeout = true;
+        reject(err);
+        // google.script.run はタイムアウト後もキャンセルできず、サーバー側の処理は継続する
+      }, ms);
+    });
+    const request = new Promise((resolve, reject) => {
       google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(err => reject(err && err.message ? err : new Error(String(err))))
         [name].apply(null, args);
     });
+    return Promise.race([request, timeout]).finally(() => clearTimeout(timerId));
+  }
+
+  function call(name, ...args) {
+    return callWithTimeout_(name, 30000, ...args);
   }
 
   function escapeHtml(s) {
@@ -137,7 +150,24 @@
     } catch (e) {
       state.busy = false;
       render();
-      showToast((opts.errorPrefix || 'エラー') + ': ' + e.message, true);
+      const toastMsg = e.isTimeout
+        ? e.message
+        : (opts.errorPrefix || 'エラー') + ': ' + e.message;
+      showToast(toastMsg, true);
+      if (e.isTimeout) {
+        // サーバー側で操作が完了した可能性があるため、バックグラウンドで状態を再取得する。
+        // スナップショット比較により、再取得完了前にユーザーが別の操作を行った場合は上書きしない。
+        const snapshot = state.notifications;
+        call('apiBootstrap')
+          .then(fresh => {
+            if (state.notifications === snapshot && !state.busy && fresh) {
+              state.notifications = fresh.notifications || [];
+              state.settings = fresh.settings || state.settings;
+              render();
+            }
+          })
+          .catch(() => {});
+      }
     }
   }
 
@@ -381,9 +411,29 @@
   /* ============================================================
    * メインレンダリング
    * ============================================================ */
+  function renderSkeleton() {
+    const card = `
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-body"></div>
+        <div class="skeleton-line skeleton-foot"></div>
+      </div>`;
+    return `
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div><div class="skeleton-line skeleton-logo"></div></div>
+          <div></div>
+          <div><div class="skeleton-line skeleton-icon"></div></div>
+        </div>
+      </div>
+      <div class="body skeleton-body-wrap">
+        ${card}${card}${card}
+      </div>`;
+  }
+
   function render() {
     if (state.loading) {
-      root().innerHTML = '<div class="loader">読み込み中…</div>';
+      root().innerHTML = renderSkeleton();
       return;
     }
     let html = '';
@@ -492,8 +542,15 @@
       return;
     }
     await runAction(async () => {
-      await call('apiSaveNotification', f);
-      await refreshState();
+      const result = await call('apiSaveNotification', f);
+      if (!result || !result.id) throw new Error('サーバーから予期しないレスポンスが返されました');
+      // apiSaveNotification は通知リストのみを変更するため、設定の再取得は不要
+      if (f.id && state.notifications.some(n => n.id === result.id)) {
+        state.notifications = state.notifications.map(n => n.id === result.id ? result : n);
+      } else {
+        // 新規追加、または他端末での削除等でIDが一覧にない場合は末尾に追加
+        state.notifications = state.notifications.concat([result]);
+      }
       state.screen = 'list';
       state.editTarget = null;
       return '保存しました';
@@ -513,7 +570,7 @@
 
   async function doSendNow(id) {
     await runAction(async () => {
-      await call('apiSendNow', id);
+      await callWithTimeout_('apiSendNow', 60000, id);
       state.notifications = state.notifications.map(n =>
         n.id === id ? Object.assign({}, n, { sent: true }) : n
       );
@@ -524,7 +581,7 @@
   async function doDuplicate() {
     if (!confirm('全ての通知の日付を +1 年し、送信済みフラグをリセットします。よろしいですか？')) return;
     await runAction(async () => {
-      const count = await call('apiDuplicateForNewYear');
+      const count = await callWithTimeout_('apiDuplicateForNewYear', 60000);
       await refreshState();
       return count + ' 件を複製しました';
     }, { errorPrefix: '複製失敗' });
@@ -565,7 +622,7 @@
     if (!confirm('全ての通知データを削除します。本当によろしいですか？')) return;
     if (!confirm('元に戻せません。本当に削除しますか？')) return;
     await runAction(async () => {
-      await call('apiDeleteAll');
+      await callWithTimeout_('apiDeleteAll', 60000);
       state.notifications = [];
       state.screen = 'list';
       return '全データを削除しました';
@@ -577,7 +634,7 @@
    * ============================================================ */
   async function init() {
     try {
-      const data = await call('apiBootstrap');
+      const data = await callWithTimeout_('apiBootstrap', 60000);
       setState({
         loading: false,
         notifications: data.notifications || [],
