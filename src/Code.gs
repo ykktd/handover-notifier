@@ -43,7 +43,22 @@ function include(filename) {
 /** 初回セットアップ：シート作成 + 日次トリガー登録。完了後に次のステップを案内する */
 function initialize() {
   ensureSheets();
+
+  const settings = getSettings();
+  if (settings.setupOwner) {
+    SpreadsheetApp.getUi().alert(
+      'セットアップ済みです',
+      'このBotはすでにセットアップ済みです（設定者: ' + settings.setupOwner + '）。\n\n' +
+        '通知の追加・編集はウェブアプリから行ってください。\n' +
+        'トリガーを再設定したい場合は、settings シートの setupOwner 行を削除してから再実行してください。',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return;
+  }
+
   setupDailyTrigger();
+  saveSettings(Object.assign({}, settings, { setupOwner: Session.getEffectiveUser().getEmail() }));
+
   SpreadsheetApp.getUi().alert(
     'セットアップ完了',
     'シートとトリガーの設定が完了しました。\n\n' +
