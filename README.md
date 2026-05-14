@@ -30,20 +30,8 @@
 
 ## スクリーンショット
 
-<div style="display: flex; gap: 15px; justify-content: space-between;">
-	<div style="flex: 1; min-width: 0;">
-		<img src="./docs/screenshot-home.png" alt="通知一覧画面" style="width: 100%; border-radius: 4px;" />
-		<p style="font-size: 0.9em; margin-top: 8px;"><strong>ホーム</strong> — 月ごとのグルーピング、即時送信・編集・削除</p>
-	</div>
-	<div style="flex: 1; min-width: 0;">
-		<img src="./docs/screenshot-edit.png" alt="追加・編集フォーム" style="width: 100%; border-radius: 4px;" />
-		<p style="font-size: 0.9em; margin-top: 8px;"><strong>追加・編集</strong> — シンプルな入力画面、文字数カウンター付き</p>
-	</div>
-	<div style="flex: 1; min-width: 0;">
-		<img src="./docs/screenshot-settings.png" alt="設定画面" style="width: 100%; border-radius: 4px;" />
-		<p style="font-size: 0.9em; margin-top: 8px;"><strong>設定</strong> — Webhook URL とメール送信先を一元管理</p>
-	</div>
-</div>
+<img src="./docs/screenshot-home.png" alt="通知一覧画面" style="width: 100%;" />
+ホーム — 月ごとのグルーピング、即時送信・編集・削除
 
 ---
 
@@ -55,7 +43,7 @@
 
 #### ① テンプレートをコピーする
 
-**テンプレートURL**：（管理者が作成後に追記します）
+**テンプレートURL**：https://docs.google.com/spreadsheets/d/1Ib1CXKQyQFLHGslqBTFVh50VghzIPy5a7NsUo-CuFP8/edit?usp=sharing
 
 上のリンクを開き、「ファイル」→「コピーを作成」で自分の Google ドライブに保存してください。
 
