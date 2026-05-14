@@ -150,10 +150,23 @@
     } catch (e) {
       state.busy = false;
       render();
-      showToast(e.isTimeout ? e.message : (opts.errorPrefix || 'エラー') + ': ' + e.message, true);
+      const toastMsg = e.isTimeout
+        ? e.message
+        : (opts.errorPrefix || 'エラー') + ': ' + e.message;
+      showToast(toastMsg, true);
       if (e.isTimeout) {
-        // サーバー側で操作が完了した可能性があるため、バックグラウンドで状態を再取得する
-        refreshState().then(() => render()).catch(() => {});
+        // サーバー側で操作が完了した可能性があるため、バックグラウンドで状態を再取得する。
+        // スナップショット比較により、再取得完了前にユーザーが別の操作を行った場合は上書きしない。
+        const snapshot = state.notifications;
+        call('apiBootstrap')
+          .then(fresh => {
+            if (state.notifications === snapshot && !state.busy && fresh) {
+              state.notifications = fresh.notifications || [];
+              state.settings = fresh.settings || state.settings;
+              render();
+            }
+          })
+          .catch(() => {});
       }
     }
   }
@@ -531,6 +544,7 @@
     await runAction(async () => {
       const result = await call('apiSaveNotification', f);
       if (!result || !result.id) throw new Error('サーバーから予期しないレスポンスが返されました');
+      // apiSaveNotification は通知リストのみを変更するため、設定の再取得は不要
       if (f.id && state.notifications.some(n => n.id === result.id)) {
         state.notifications = state.notifications.map(n => n.id === result.id ? result : n);
       } else {
@@ -556,7 +570,7 @@
 
   async function doSendNow(id) {
     await runAction(async () => {
-      await call('apiSendNow', id);
+      await callWithTimeout_('apiSendNow', 60000, id);
       state.notifications = state.notifications.map(n =>
         n.id === id ? Object.assign({}, n, { sent: true }) : n
       );
@@ -567,7 +581,7 @@
   async function doDuplicate() {
     if (!confirm('全ての通知の日付を +1 年し、送信済みフラグをリセットします。よろしいですか？')) return;
     await runAction(async () => {
-      const count = await call('apiDuplicateForNewYear');
+      const count = await callWithTimeout_('apiDuplicateForNewYear', 60000);
       await refreshState();
       return count + ' 件を複製しました';
     }, { errorPrefix: '複製失敗' });
@@ -608,7 +622,7 @@
     if (!confirm('全ての通知データを削除します。本当によろしいですか？')) return;
     if (!confirm('元に戻せません。本当に削除しますか？')) return;
     await runAction(async () => {
-      await call('apiDeleteAll');
+      await callWithTimeout_('apiDeleteAll', 60000);
       state.notifications = [];
       state.screen = 'list';
       return '全データを削除しました';
