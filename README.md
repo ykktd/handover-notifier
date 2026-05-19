@@ -41,6 +41,12 @@
 
 ### テンプレートから始める（推奨）
 
+手順全体の流れは、以下の動画でも確認できます。  
+
+**▶ セットアップ実演動画: [動画を見る](https://drive.google.com/file/d/1On-Yh2YJ_eZBdj9w6AsVWSNLK_D-xVy_/view?usp=drive_link)**  
+
+以下では、同じ手順を文章で説明します。
+
 #### ① テンプレートをコピーする
 
 **テンプレートURL**：https://docs.google.com/spreadsheets/d/1Ib1CXKQyQFLHGslqBTFVh50VghzIPy5a7NsUo-CuFP8/edit?usp=sharing
