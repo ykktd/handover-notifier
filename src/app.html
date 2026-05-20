@@ -310,15 +310,15 @@
         ''
       )}
       <div class="body">
+        <div class="form-group">
+          <label class="label">タイトル<span class="label-sub">* 一覧での表示名</span></label>
+          <input id="f-title" class="input" placeholder="例：新歓準備の開始" value="${escapeHtml(f.title)}">
+        </div>
         <div class="msg-card">
           <label class="label">通知メッセージ<span class="label-sub">* 何をすべきか具体的に書きましょう</span></label>
           <textarea id="f-message" class="textarea" rows="8"
             placeholder="例：新歓準備を始める時期です。昨年の会場リストを確認して、仮予約の連絡を今週中に入れておいてください。">${escapeHtml(f.message)}</textarea>
           <div id="counter" class="counter ${f.message ? 'has-value' : ''}">${(f.message || '').length}文字</div>
-        </div>
-        <div class="form-group">
-          <label class="label">タイトル<span class="label-sub">* 一覧での表示名</span></label>
-          <input id="f-title" class="input" placeholder="例：新歓準備の開始" value="${escapeHtml(f.title)}">
         </div>
         <div class="form-group">
           <label class="label">送信日<span class="label-sub">* この日の朝に自動送信されます</span></label>
