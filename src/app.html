@@ -43,6 +43,7 @@
     notifications: [],
     settings: { slackWebhookUrl: '', gmailAddresses: '' },
     editTarget: null,
+    editBaseline: null,
     testTarget: null,
     testSent: false,
     loading: true,
@@ -136,6 +137,55 @@
   }
   function joinEmails(arr) {
     return (arr || []).filter(Boolean).join(',');
+  }
+
+  const EDIT_FIELD_DEFAULTS = { title: '', message: '', date: '', dest: 'slack', link: '' };
+  const EDIT_FIELD_KEYS = Object.keys(EDIT_FIELD_DEFAULTS);
+
+  function normalizeEditFields(source) {
+    const f = Object.assign({}, EDIT_FIELD_DEFAULTS, source || {});
+    return {
+      title: String(f.title || ''),
+      message: String(f.message || ''),
+      date: String(f.date || ''),
+      dest: String(f.dest || 'slack'),
+      link: String(f.link || '')
+    };
+  }
+
+  function makeEditState(target) {
+    const normalized = normalizeEditFields(target);
+    return {
+      editTarget: Object.assign({}, target || {}, normalized),
+      editBaseline: normalized
+    };
+  }
+
+  function readEditFormFields() {
+    const current = state.editTarget || {};
+    const get = (id, fallback) => {
+      const el = document.getElementById(id);
+      return el ? el.value : fallback;
+    };
+    return normalizeEditFields({
+      message: get('f-message', current.message),
+      title: get('f-title', current.title),
+      date: get('f-date', current.date),
+      dest: current.dest,
+      link: get('f-link', current.link)
+    });
+  }
+
+  function hasUnsavedEditChanges() {
+    if (state.screen !== 'edit') return false;
+    const current = readEditFormFields();
+    const baseline = state.editBaseline || normalizeEditFields(null);
+    return EDIT_FIELD_KEYS.some(key => current[key] !== baseline[key]);
+  }
+
+  function confirmDiscardEditChanges() {
+    if (!hasUnsavedEditChanges()) return true;
+    return confirm('保存していない編集内容があります。このまま移動しますか？');
   }
 
   // 非同期アクションの busy 制御 + エラートーストを集約する。
@@ -462,9 +512,9 @@
     const id = el.getAttribute('data-id');
 
     switch (action) {
-      case 'goto-list':       return setState({ screen: 'list', editTarget: null });
-      case 'goto-settings':   return setState({ screen: 'settings' });
-      case 'add':             return setState({ screen: 'edit', editTarget: null });
+      case 'goto-list':       return gotoList();
+      case 'goto-settings':   return gotoSettings();
+      case 'add':             return startAdd();
       case 'edit':            return openEdit(id);
       case 'open-test':       return openTest(id);
       case 'close-test':      return setState({ testTarget: null, testSent: false });
@@ -484,10 +534,24 @@
   /* ============================================================
    * アクションハンドラ
    * ============================================================ */
+  function gotoList() {
+    if (!confirmDiscardEditChanges()) return;
+    setState({ screen: 'list', editTarget: null, editBaseline: null });
+  }
+
+  function gotoSettings() {
+    if (!confirmDiscardEditChanges()) return;
+    setState({ screen: 'settings', editTarget: null, editBaseline: null });
+  }
+
+  function startAdd() {
+    setState(Object.assign({ screen: 'edit' }, makeEditState(null)));
+  }
+
   function openEdit(id) {
     const target = state.notifications.find(n => n.id === id);
     if (!target) return;
-    setState({ screen: 'edit', editTarget: Object.assign({}, target) });
+    setState(Object.assign({ screen: 'edit' }, makeEditState(target)));
   }
 
   function openTest(id) {
@@ -497,22 +561,14 @@
   }
 
   function selectDest(dest) {
-    if (!state.editTarget) state.editTarget = { title: '', message: '', date: '', dest: 'slack', link: '' };
-    state.editTarget = Object.assign({}, state.editTarget, { dest: dest });
     captureForm();
+    state.editTarget = Object.assign({}, state.editTarget, { dest: dest });
     render();
   }
 
   function captureForm() {
-    const get = (id) => {
-      const el = document.getElementById(id);
-      return el ? el.value : '';
-    };
-    if (!state.editTarget) state.editTarget = {};
-    state.editTarget.message = get('f-message');
-    state.editTarget.title = get('f-title');
-    state.editTarget.date = get('f-date');
-    state.editTarget.link = get('f-link');
+    state.editTarget = Object.assign({}, state.editTarget || {}, readEditFormFields());
+    return state.editTarget;
   }
 
   async function refreshState() {
@@ -537,6 +593,7 @@
         : state.notifications.concat([result]);
       state.screen = 'list';
       state.editTarget = null;
+      state.editBaseline = null;
       return '保存しました';
     }, { errorPrefix: '保存失敗' });
   }
@@ -548,6 +605,7 @@
       state.notifications = state.notifications.filter(n => n.id !== id);
       state.screen = 'list';
       state.editTarget = null;
+      state.editBaseline = null;
       return '削除しました';
     }, { errorPrefix: '削除失敗' });
   }
