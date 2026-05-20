@@ -23,12 +23,12 @@ function doGet() {
   return HtmlService.createTemplateFromFile("index")
     .evaluate()
     .setTitle("引き継ぎ通知Bot")
-    .setFaviconUrl(getFaviconUrl_())
+    .setFaviconUrl(getAppIconUrl_())
     .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function getFaviconUrl_() {
+function getAppIconUrl_() {
   // Google ドライブのファイルID
   // 元のリンク: https://drive.google.com/file/d/1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B/view?usp=drive_link
   const fileId = "1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B";
