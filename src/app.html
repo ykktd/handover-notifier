@@ -41,7 +41,7 @@
   let state = {
     screen: 'list',
     notifications: [],
-    settings: { slackWebhookUrl: '', gmailAddresses: '' },
+    settings: { slackWebhookUrl: '', gmailAddresses: '', roleName: '' },
     editTarget: null,
     editBaseline: null,
     testTarget: null,
@@ -259,7 +259,7 @@
 
     return `
       ${renderTopbar(
-        `<div class="logo"><svg width="24" height="24" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0"><rect width="48" height="48" rx="12" fill="#3a6b50"/><path d="M24 10c-5.523 0-10 4.477-10 10v6.5l-2.5 4h25l-2.5-4V20c0-5.523-4.477-10-10-10z" fill="white" opacity="0.95"/><circle cx="24" cy="36.5" r="2.8" fill="white" opacity="0.95"/><circle cx="33" cy="13" r="6" fill="#f0d878"/><line x1="33" y1="10.5" x2="33" y2="13" stroke="#6a5200" stroke-width="1.4" stroke-linecap="round"/><line x1="33" y1="13" x2="35.2" y2="14.2" stroke="#6a5200" stroke-width="1.4" stroke-linecap="round"/></svg>引き継ぎ通知Bot</div>`,
+        `<div class="logo"><svg width="24" height="24" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" style="display:block;flex-shrink:0"><rect width="48" height="48" rx="12" fill="#3a6b50"/><path d="M24 10c-5.523 0-10 4.477-10 10v6.5l-2.5 4h25l-2.5-4V20c0-5.523-4.477-10-10-10z" fill="white" opacity="0.95"/><circle cx="24" cy="36.5" r="2.8" fill="white" opacity="0.95"/><circle cx="33" cy="13" r="6" fill="#f0d878"/><line x1="33" y1="10.5" x2="33" y2="13" stroke="#6a5200" stroke-width="1.4" stroke-linecap="round"/><line x1="33" y1="13" x2="35.2" y2="14.2" stroke="#6a5200" stroke-width="1.4" stroke-linecap="round"/></svg><span>引き継ぎ通知Bot${state.settings.roleName ? '<span class="logo-role">（' + escapeHtml(state.settings.roleName) + '）</span>' : ''}</span></div>`,
         '',
         `<button class="icon-btn" data-action="goto-settings" title="設定">${ICONS.settings}</button>`
       )}
@@ -362,6 +362,15 @@
         ''
       )}
       <div class="body">
+
+        <div class="section-header">
+          <span class="section-label">役職名</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="panel">
+          <label class="label">役職名<span class="label-sub">任意 — 一覧画面のタイトル横に表示されます</span></label>
+          <input id="s-role-name" class="input" value="${escapeHtml(s.roleName || '')}" placeholder="例：企画">
+        </div>
 
         <div class="section-header">
           <span class="section-label">${ICONS.slack}Slack</span>
@@ -650,6 +659,8 @@
   function captureSettingsInput() {
     const slack = document.getElementById('s-slack');
     if (slack) state.settings.slackWebhookUrl = slack.value;
+    const role = document.getElementById('s-role-name');
+    if (role) state.settings.roleName = role.value;
   }
 
   async function saveSettingsForm() {

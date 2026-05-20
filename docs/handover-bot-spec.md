@@ -46,6 +46,7 @@ Google Apps Script (GAS) + Google スプレッドシートで実装する。
 |------|----|
 | slackWebhookUrl | Slack Incoming Webhook URL |
 | gmailAddresses | 送信先メールアドレス（複数の場合はカンマ区切り） |
+| roleName | 役職名（任意）。設定すると一覧画面のタイトル横に「（役職名）」として表示される |
 
 ---
 
@@ -84,6 +85,7 @@ Google Apps Script (GAS) + Google スプレッドシートで実装する。
 - 各通知では `dest`（slack / email）の選択のみを行う
 - 送信先の詳細（どのチャンネルか・誰に送るか）は設定画面で一元管理する
 - **Slack の送信先チャンネルは Webhook URL 作成時に固定される。通知ごとにチャンネルを指定する機能は不要**
+- 役職名（任意）を登録すると、一覧画面のタイトル横に表示され、どの役職用のBotか判別できる
 
 ---
 
@@ -109,6 +111,7 @@ Google Apps Script (GAS) + Google スプレッドシートで実装する。
 
 ### 画面③：設定
 
+- 役職名の入力・保存（任意。設定すると画面①のタイトル横に表示される）
 - Slack Incoming Webhook URL の入力・保存
 - Gmail 送信先メールアドレスの追加・削除・保存（複数登録可）
 - データ管理セクション：全データ削除（危険操作として視覚的に分離）

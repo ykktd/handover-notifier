@@ -35,6 +35,7 @@ function ensureSheets() {
     sSheet.setFrozenRows(1);
     sSheet.appendRow(['slackWebhookUrl', '']);
     sSheet.appendRow(['gmailAddresses', '']);
+    sSheet.appendRow(['roleName', '']);
   }
 }
 
@@ -123,7 +124,7 @@ function setSent(id, sent) {
 function getSettings() {
   const sheet = getSettingsSheet_();
   const lastRow = sheet.getLastRow();
-  const settings = { slackWebhookUrl: '', gmailAddresses: '' };
+  const settings = { slackWebhookUrl: '', gmailAddresses: '', roleName: '' };
   if (lastRow < 2) return settings;
   const values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
   values.forEach(row => {
