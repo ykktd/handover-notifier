@@ -85,6 +85,7 @@ a { color: var(--accent); }
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 .topbar .logo .logo-role {
   font-weight: 600;
@@ -212,6 +213,8 @@ a { color: var(--accent); }
   gap: 8px;
   margin: 24px 0 8px;
 }
+.body > .section-header:first-child,
+.body > section:first-child .section-header { margin-top: 0; }
 .section-label {
   font-size: 12px;
   font-weight: 700;
