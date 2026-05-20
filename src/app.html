@@ -28,7 +28,6 @@
     edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
     trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>',
     copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
-    link: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
     slack: '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.52 2.528 2.528 0 01-2.522-2.52 2.528 2.528 0 012.522-2.52h2.52v2.52zm1.271 0a2.528 2.528 0 012.52-2.52 2.528 2.528 0 012.52 2.52v6.313a2.528 2.528 0 01-2.52 2.522 2.528 2.528 0 01-2.52-2.522v-6.313zm2.52-10.123a2.528 2.528 0 01-2.52-2.52A2.528 2.528 0 018.833 0a2.528 2.528 0 012.52 2.522v2.52H8.833zm0 1.271a2.528 2.528 0 012.52 2.52 2.528 2.528 0 01-2.52 2.52H2.522A2.528 2.528 0 010 8.833a2.528 2.528 0 012.522-2.52H8.833zm10.123 2.52a2.528 2.528 0 012.522-2.52A2.528 2.528 0 0124 8.833a2.528 2.528 0 01-2.522 2.52h-2.522V8.833zm-1.268 0a2.528 2.528 0 01-2.52 2.52 2.528 2.528 0 01-2.522-2.52V2.522A2.528 2.528 0 0115.165 0a2.528 2.528 0 012.52 2.522V8.833zm-2.52 10.123a2.528 2.528 0 012.52 2.522A2.528 2.528 0 0115.165 24a2.528 2.528 0 01-2.52-2.522v-2.522h2.52zm0-1.268a2.528 2.528 0 01-2.52-2.52 2.528 2.528 0 012.52-2.522h6.313A2.528 2.528 0 0124 15.165a2.528 2.528 0 01-2.522 2.52h-6.313z"/></svg>',
     mail: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>',
     calendar: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
@@ -139,17 +138,16 @@
     return (arr || []).filter(Boolean).join(',');
   }
 
-  const EDIT_FIELD_DEFAULTS = { title: '', message: '', date: '', dest: 'slack', link: '' };
+  const EDIT_FIELD_DEFAULTS = { title: '', message: '', date: '', dest: 'slack' };
   const EDIT_FIELD_KEYS = Object.keys(EDIT_FIELD_DEFAULTS);
 
   function normalizeEditFields(source) {
-    const f = Object.assign({}, EDIT_FIELD_DEFAULTS, source || {});
+    const f = source || {};
     return {
       title: String(f.title || ''),
       message: String(f.message || ''),
       date: String(f.date || ''),
-      dest: String(f.dest || 'slack'),
-      link: String(f.link || '')
+      dest: String(f.dest || EDIT_FIELD_DEFAULTS.dest)
     };
   }
 
@@ -171,8 +169,7 @@
       message: get('f-message', current.message),
       title: get('f-title', current.title),
       date: get('f-date', current.date),
-      dest: current.dest,
-      link: get('f-link', current.link)
+      dest: current.dest
     });
   }
 
@@ -289,7 +286,6 @@
         <div class="card-foot">
           <span class="card-date">${formatDate(n.date)}</span>
           ${badgeHtml(n.dest)}
-          ${n.link ? '<span class="link-mark">' + ICONS.link + 'リンクあり</span>' : ''}
           ${n.sent ? '<span class="sent-mark">送信済み</span>' : ''}
         </div>
       </div>
@@ -300,7 +296,7 @@
    * 画面②：通知 追加 / 編集
    * ============================================================ */
   function renderEdit() {
-    const f = state.editTarget || { title: '', message: '', date: '', dest: 'slack', link: '' };
+    const f = state.editTarget || EDIT_FIELD_DEFAULTS;
     const isNew = !f.id;
 
     return `
@@ -331,10 +327,6 @@
             <button class="seg-btn ${f.dest === 'email' ? 'active' : ''}" data-action="select-dest" data-dest="email">${ICONS.mail}Gmail</button>
           </div>
           <div class="seg-help">詳細（Webhook URL・メールアドレス）は<a data-action="goto-settings">設定画面</a>で管理します</div>
-        </div>
-        <div class="form-group">
-          <label class="label">参考リンク<span class="label-sub">任意 — メッセージだけで伝わる場合は不要です</span></label>
-          <input id="f-link" class="input" placeholder="https://docs.google.com/..." value="${escapeHtml(f.link || '')}">
         </div>
         <div class="actions">
           <button class="btn-primary" data-action="save">保存する</button>
@@ -443,7 +435,6 @@
           <div class="modal-preview">
             <div class="modal-preview-title">${escapeHtml(t.title)}</div>
             <div class="modal-preview-body">${escapeHtml(t.message || '（メッセージ未設定）')}</div>
-            ${t.link ? '<div class="modal-preview-link">' + ICONS.link + escapeHtml(t.link) + '</div>' : ''}
           </div>
           <div class="modal-actions">
             <button class="btn-test" data-action="send-now" data-id="${escapeHtml(t.id)}" ${state.busy ? 'disabled' : ''}>
@@ -691,7 +682,7 @@
       setState({
         loading: false,
         notifications: data.notifications || [],
-        settings: data.settings || { slackWebhookUrl: '', gmailAddresses: '' }
+        settings: data.settings || { slackWebhookUrl: '', gmailAddresses: '', roleName: '' }
       });
     } catch (e) {
       root().innerHTML = '<div class="loader" style="color:#c0392b">初期化エラー: ' + escapeHtml(e.message) + '</div>';

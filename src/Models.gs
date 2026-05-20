@@ -2,7 +2,7 @@
  * 引き継ぎ通知Bot — データ層（スプレッドシート操作）
  *
  * シート構成
- *   notifications: id, title, message, date, dest, link, sent
+ *   notifications: id, title, message, date, dest, sent
  *   settings:      key, value （slackWebhookUrl / gmailAddresses）
  *
  * 全データを「現役データ」として 1 シートで管理する設計（仕様書参照）。
@@ -10,7 +10,7 @@
 
 const SHEET_NOTIFICATIONS = 'notifications';
 const SHEET_SETTINGS = 'settings';
-const COLS = ['id', 'title', 'message', 'date', 'dest', 'link', 'sent'];
+const COLS = ['id', 'title', 'message', 'date', 'dest', 'sent'];
 
 /** 初回呼び出し時にシートを作成。既にあれば何もしない。 */
 function ensureSheets() {
@@ -58,7 +58,6 @@ function rowToObj_(row) {
   obj.title = String(obj.title || '');
   obj.message = String(obj.message || '');
   obj.dest = String(obj.dest || 'slack');
-  obj.link = String(obj.link || '');
   obj.id = String(obj.id || '');
   return obj;
 }

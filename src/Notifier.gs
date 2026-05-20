@@ -20,8 +20,7 @@ function sendToSlack_(notification, webhookUrl) {
   if (!webhookUrl) {
     throw new Error('Slack Webhook URL が未設定です（設定画面から登録してください）');
   }
-  let text = '*' + notification.title + '*\n\n' + notification.message;
-  if (notification.link) text += '\n\n' + notification.link;
+  const text = '*' + notification.title + '*\n\n' + notification.message;
 
   const res = UrlFetchApp.fetch(webhookUrl, {
     method: 'post',
@@ -41,13 +40,10 @@ function sendToEmail_(notification, addresses) {
   const to = addresses.split(',').map(s => s.trim()).filter(Boolean).join(',');
   if (!to) throw new Error('有効なメールアドレスがありません');
 
-  let body = notification.message;
-  if (notification.link) body += '\n\n参考リンク: ' + notification.link;
-
   MailApp.sendEmail({
     to: to,
-    subject: '[引き継ぎ通知] ' + notification.title,
-    body: body
+    subject: '【引き継ぎ通知】' + notification.title,
+    body: notification.message
   });
 }
 
