@@ -150,7 +150,10 @@ a { color: var(--accent); }
   align-items: center;
   justify-content: center;
   gap: 6px;
+  transition: filter 0.15s, transform 0.05s;
 }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:active:not(:disabled) { filter: brightness(0.92); transform: translateY(1px); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-secondary {
@@ -162,7 +165,10 @@ a { color: var(--accent); }
   font-weight: 500;
   font-size: 14px;
   cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
 }
+.btn-secondary:hover { background: var(--bg); }
+.btn-secondary:active { transform: translateY(1px); }
 
 .btn-danger {
   background: var(--danger-light);
@@ -176,7 +182,10 @@ a { color: var(--accent); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: filter 0.15s, transform 0.05s;
 }
+.btn-danger:hover { filter: brightness(0.96); }
+.btn-danger:active { filter: brightness(0.9); transform: translateY(1px); }
 
 .btn-test {
   background: var(--yellow-light);
@@ -190,7 +199,10 @@ a { color: var(--accent); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  transition: filter 0.15s, transform 0.05s;
 }
+.btn-test:hover { filter: brightness(0.96); }
+.btn-test:active { filter: brightness(0.9); transform: translateY(1px); }
 
 .btn-yellow {
   background: var(--yellow);
@@ -204,7 +216,10 @@ a { color: var(--accent); }
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: filter 0.15s, transform 0.05s;
 }
+.btn-yellow:hover { filter: brightness(1.08); }
+.btn-yellow:active { filter: brightness(0.92); transform: translateY(1px); }
 
 /* ===== セクションヘッダ ===== */
 .section-header {
