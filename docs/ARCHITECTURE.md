@@ -71,8 +71,12 @@ settingsシート列:       key | value
 | 関数 | 役割 |
 |---|---|
 | `sendNotification(notification)` | `dest` フィールドで Slack/Gmail を振り分けて送信 |
-| `sendToSlack_(notification, webhookUrl)` | Incoming Webhook に JSON POST |
-| `sendToEmail_(notification, addresses)` | CSV のアドレスをパースして `MailApp.sendEmail()` |
+| `sendToSlack_(notification, webhookUrl)` | Block Kit ペイロード（header + divider + rich_text）を組み立てて Incoming Webhook に JSON POST |
+| `sendToEmail_(notification, addresses)` | CSV のアドレスをパースし、Markdown を HTML 化した `htmlBody` 付きで `MailApp.sendEmail()` |
+| `markdownToSlackRichText_(md)` | 限定 Markdown（`**太字**` / `[表示](URL)`）を Slack rich_text の要素配列に変換 |
+| `markdownToHtml_(md)` | 同じ限定 Markdown を HTML 文字列に変換（メール本文用） |
+| `convertMarkdown_(md, opts)` | Markdown トークナイザの共通実装。bold/link/escape を渡せばフォーマット別の出力を組み立てる |
+| `escapeHtml_(s)` | HTML エスケープ（`& < > " '`） |
 | `dailyTrigger()` | 時間主導トリガーから毎朝呼ばれる。今日の日付に一致する未送信通知を全件送信 |
 | `setupDailyTrigger()` | 毎朝 7 時に `dailyTrigger` を実行するトリガーを登録（重複削除してから再登録） |
 
@@ -86,7 +90,7 @@ settingsシート列:       key | value
 
 ### `app.html` — フロントエンド SPA（メインロジック）
 
-画面描画・操作のすべてを担う 580 行の JavaScript。即時関数（IIFE）でスコープを閉じた SPA です。
+画面描画・操作のすべてを担う JavaScript。即時関数（IIFE）でスコープを閉じた SPA です。
 
 **状態管理**
 
@@ -107,6 +111,8 @@ settingsシート列:       key | value
 | `badgeHtml(dest)` | Slack/Gmail バッジの HTML を返す |
 | `parseEmails(csv)` / `joinEmails(arr)` | CSV ↔ 配列の変換 |
 | `runAction(fn, opts)` | 非同期処理の busy 制御・エラートースト表示を共通化 |
+| `markdownToPreviewHtml(md)` | 限定 Markdown を HTML 化（今すぐ送信モーダルのプレビュー用、サーバー側 `markdownToHtml_` と等価） |
+| `mdInsertBold()` / `mdInsertLink()` / `mdReplaceSelection(...)` | メッセージ欄上部の Markdown ツールバーから呼ばれ、textarea の選択範囲を `**...**` や `[...](URL)` で書き換える |
 
 **画面描画**
 

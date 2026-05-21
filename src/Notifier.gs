@@ -3,6 +3,9 @@
  *
  * 送信先は notification.dest（'slack' / 'email'）で分岐。
  * 設定値（Webhook URL・送信先メール）は settings シートから読む。
+ *
+ * メッセージは限定 Markdown（`**太字**` と `[表示](URL)`）を受け付け、
+ * Slack には mrkdwn + Block Kit、Gmail には HTML メールに変換して送る。
  */
 
 function sendNotification(notification) {
@@ -20,12 +23,33 @@ function sendToSlack_(notification, webhookUrl) {
   if (!webhookUrl) {
     throw new Error('Slack Webhook URL が未設定です（設定画面から登録してください）');
   }
-  const text = '*' + notification.title + '*\n\n' + notification.message;
+  let title = String(notification.title || '');
+  // header.plain_text は 150 文字制限
+  if (title.length > 150) title = title.slice(0, 149) + '…';
+
+  let rawMessage = String(notification.message || '');
+  if (rawMessage.length > 3000) rawMessage = rawMessage.slice(0, 2999) + '…';
+
+  const headerText = title || '通知';
+  // rich_text を使うことで Slack mrkdwn の CJK 境界問題（*太字* が日本語に隣接すると効かない件）を回避する
+  const payload = {
+    text: headerText,
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: headerText, emoji: true } },
+      { type: 'divider' },
+      {
+        type: 'rich_text',
+        elements: [
+          { type: 'rich_text_section', elements: markdownToSlackRichText_(rawMessage) }
+        ]
+      }
+    ]
+  };
 
   const res = UrlFetchApp.fetch(webhookUrl, {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({ text: text }),
+    payload: JSON.stringify(payload),
     muteHttpExceptions: true
   });
   if (res.getResponseCode() >= 300) {
@@ -40,11 +64,96 @@ function sendToEmail_(notification, addresses) {
   const to = addresses.split(',').map(s => s.trim()).filter(Boolean).join(',');
   if (!to) throw new Error('有効なメールアドレスがありません');
 
+  const title = String(notification.title || '');
+  const rawMessage = String(notification.message || '');
+  const htmlMessage = markdownToHtml_(rawMessage);
+
+  const htmlBody =
+    '<div style="font-family:\'Noto Sans JP\',\'Hiragino Sans\',sans-serif;color:#1a1a1a;line-height:1.8;max-width:640px">' +
+      '<h2 style="font-size:18px;margin:0 0 14px">' + escapeHtml_(title) + '</h2>' +
+      '<div style="white-space:pre-wrap;font-size:14px">' + htmlMessage + '</div>' +
+    '</div>';
+
   MailApp.sendEmail({
     to: to,
-    subject: '【引き継ぎ通知】' + notification.title,
-    body: notification.message
+    subject: '【引き継ぎ通知】' + title,
+    body: rawMessage,
+    htmlBody: htmlBody
   });
+}
+
+/* ------------------------------------------------------------
+ * Markdown 変換（限定サブセット：`**太字**` と `[表示](URL)`）
+ * ------------------------------------------------------------ */
+
+/** Slack rich_text 用の要素配列を返す。テキストはエスケープ不要（リテラル扱い）。 */
+function markdownToSlackRichText_(md) {
+  const elements = [];
+  if (md == null) {
+    return [{ type: 'text', text: '' }];
+  }
+  const s = String(md);
+  const re = /\[([^\[\]\n]+)\]\((https?:\/\/[^\s)>|]+)\)|\*\*([^*\n]+)\*\*/g;
+  let lastIndex = 0;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    if (m.index > lastIndex) {
+      elements.push({ type: 'text', text: s.substring(lastIndex, m.index) });
+    }
+    if (m[1] && m[2]) {
+      elements.push({ type: 'link', url: m[2], text: m[1] });
+    } else if (m[3]) {
+      elements.push({ type: 'text', text: m[3], style: { bold: true } });
+    }
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < s.length) {
+    elements.push({ type: 'text', text: s.substring(lastIndex) });
+  }
+  return elements.length ? elements : [{ type: 'text', text: '' }];
+}
+
+function markdownToHtml_(md) {
+  return convertMarkdown_(md, {
+    bold: function (inner) { return '<strong>' + inner + '</strong>'; },
+    link: function (text, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>';
+    },
+    escape: escapeHtml_
+  });
+}
+
+function convertMarkdown_(md, opts) {
+  if (md == null) return '';
+  const s = String(md);
+  const re = /\[([^\[\]\n]+)\]\((https?:\/\/[^\s)>|]+)\)|\*\*([^*\n]+)\*\*/g;
+  let out = '';
+  let lastIndex = 0;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    if (m.index > lastIndex) {
+      out += opts.escape(s.substring(lastIndex, m.index));
+    }
+    if (m[1] && m[2]) {
+      out += opts.link(opts.escape(m[1]), opts.escape(m[2]));
+    } else if (m[3]) {
+      out += opts.bold(opts.escape(m[3]));
+    }
+    lastIndex = re.lastIndex;
+  }
+  if (lastIndex < s.length) {
+    out += opts.escape(s.substring(lastIndex));
+  }
+  return out;
+}
+
+function escapeHtml_(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** 時間主導型トリガーから 1 日 1 回呼ばれる。当日の未送信通知を送る。 */

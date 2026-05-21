@@ -429,6 +429,45 @@ a { color: var(--accent); }
 }
 .counter.has-value { color: var(--accent-mid); }
 
+/* ===== Markdown ツールバー ===== */
+.md-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.md-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--text-sub);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s, color 0.15s, transform 0.05s;
+}
+.md-btn:hover { background: var(--bg); color: var(--text); }
+.md-btn:active { transform: translateY(1px); }
+.md-btn strong { font-size: 13px; }
+.md-hint {
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-left: 4px;
+}
+.md-hint code {
+  background: var(--bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+.modal-preview-body strong { font-weight: 700; }
+.modal-preview-body a { color: var(--accent); }
+
 .seg {
   display: flex;
   gap: 8px;
