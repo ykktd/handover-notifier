@@ -45,7 +45,7 @@
 
 セットアップは年に1度。テンプレートを使えば数分で完了します。手順は実演動画でも確認できます。
 
-**▶ セットアップ実演動画：[動画を見る](https://drive.google.com/file/d/1On-Yh2YJ_eZBdj9w6AsVWSNLK_D-xVy_/view?usp=drive_link)**
+**▶ セットアップ実演動画：[動画を見る](https://drive.google.com/file/d/1M9N8aRTJPl-VgaCFJVlYjoce47vRyeQf/view?usp=drive_link)**
 
 ### 手順の要点（4ステップ）
 
