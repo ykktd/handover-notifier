@@ -23,19 +23,22 @@ function sendToSlack_(notification, webhookUrl) {
   if (!webhookUrl) {
     throw new Error('Slack Webhook URL が未設定です（設定画面から登録してください）');
   }
-  let title = String(notification.title || '');
-  // header.plain_text は 150 文字制限
-  if (title.length > 150) title = title.slice(0, 149) + '…';
+  let title = String(notification.title || '通知');
+  if (title.length > 3000) title = title.slice(0, 2999) + '…';
 
   let rawMessage = String(notification.message || '');
   if (rawMessage.length > 3000) rawMessage = rawMessage.slice(0, 2999) + '…';
 
-  const headerText = title || '通知';
-  // rich_text を使うことで Slack mrkdwn の CJK 境界問題（*太字* が日本語に隣接すると効かない件）を回避する
+  // rich_text を使うことで通常サイズのテキストのまま太字を扱い、Slack mrkdwn の CJK 境界問題も回避する
   const payload = {
-    text: headerText,
+    text: title,
     blocks: [
-      { type: 'header', text: { type: 'plain_text', text: headerText, emoji: true } },
+      {
+        type: 'rich_text',
+        elements: [
+          { type: 'rich_text_section', elements: [{ type: 'text', text: title, style: { bold: true } }] }
+        ]
+      },
       { type: 'divider' },
       {
         type: 'rich_text',

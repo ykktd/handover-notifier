@@ -71,7 +71,7 @@ settingsシート列:       key | value
 | 関数 | 役割 |
 |---|---|
 | `sendNotification(notification)` | `dest` フィールドで Slack/Gmail を振り分けて送信 |
-| `sendToSlack_(notification, webhookUrl)` | Block Kit ペイロード（header + divider + rich_text）を組み立てて Incoming Webhook に JSON POST |
+| `sendToSlack_(notification, webhookUrl)` | Block Kit ペイロード（太字の通常テキストタイトル + divider + rich_text）を組み立てて Incoming Webhook に JSON POST |
 | `sendToEmail_(notification, addresses)` | CSV のアドレスをパースし、Markdown を HTML 化した `htmlBody` 付きで `MailApp.sendEmail()` |
 | `markdownToSlackRichText_(md)` | 限定 Markdown（`**太字**` / `[表示](URL)`）を Slack rich_text の要素配列に変換 |
 | `markdownToHtml_(md)` | 同じ限定 Markdown を HTML 文字列に変換（メール本文用） |

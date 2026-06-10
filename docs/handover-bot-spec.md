@@ -56,7 +56,7 @@ Google Apps Script (GAS) + Google スプレッドシートで実装する。
 - GAS の時間主導型トリガーで1日1回実行
 - `date` が当日かつ `sent === false` の通知を抽出して送信
 - 送信成功後に `sent` を `true` に更新
-- Slack 送信時は Block Kit（header + section）でレイアウトし、タイトルを視覚的に強調する
+- Slack 送信時は Block Kit（太字の通常テキストタイトル + divider + 通常テキスト本文）でレイアウトする
 - Gmail 送信時は HTML メール（`htmlBody`）として送信し、太字・リンクが効いた状態で届く
 - メッセージ本文の限定 Markdown（`**太字**`、`[表示](URL)`）は送信先に応じて自動変換する
 
