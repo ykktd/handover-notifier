@@ -378,8 +378,10 @@
           <div class="section-line"></div>
         </div>
         <div class="panel">
-          <label class="label">Incoming Webhook URL</label>
-          <div class="setting-status ${s.slackWebhookConfigured ? 'configured' : 'missing'}">${s.slackWebhookConfigured ? '登録済み' : '未登録'}</div>
+          <div class="label-row">
+            <label class="label">Incoming Webhook URL</label>
+            <div class="setting-status ${s.slackWebhookConfigured ? 'configured' : 'missing'}">${s.slackWebhookConfigured ? '登録済み' : '未登録'}</div>
+          </div>
           <div class="panel-help webhook-help">${s.slackWebhookConfigured ? '保存済みの URL は安全のため表示していません。変更する場合のみ、新しい Webhook URL を入力してください。' : 'Slack 通知を使うには Incoming Webhook URL を登録してください。'}</div>
           ${showWebhookInput ? `
             <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="https://hooks.slack.com/services/..." autocomplete="off">
