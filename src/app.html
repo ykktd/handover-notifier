@@ -43,6 +43,7 @@
     screen: 'list',
     notifications: [],
     settings: Object.assign({}, DEFAULT_SETTINGS),
+    showSlackWebhookInput: false,
     editTarget: null,
     editBaseline: null,
     testTarget: null,
@@ -353,6 +354,7 @@
   function renderSettings() {
     const s = state.settings;
     const emails = parseEmails(s.gmailAddresses);
+    const showWebhookInput = !s.slackWebhookConfigured || state.showSlackWebhookInput || !!s.slackWebhookUrl;
 
     return `
       ${renderTopbar(
@@ -377,9 +379,14 @@
         </div>
         <div class="panel">
           <label class="label">Incoming Webhook URL</label>
-          <div class="setting-status ${s.slackWebhookConfigured ? 'configured' : 'missing'}">現在の状態：${s.slackWebhookConfigured ? '登録済み' : '未登録'}</div>
-          <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="${s.slackWebhookConfigured ? '変更するときだけ新しい URL を入力' : 'https://hooks.slack.com/services/...'}" autocomplete="off">
-          <div class="panel-help">Slack アプリ管理画面の「Incoming Webhooks」から発行できます。保存後は URL を画面に表示しません。登録済みの場合は空欄のまま保存すると変更されません。</div>
+          <div class="setting-status ${s.slackWebhookConfigured ? 'configured' : 'missing'}">${s.slackWebhookConfigured ? '登録済み' : '未登録'}</div>
+          <div class="panel-help webhook-help">${s.slackWebhookConfigured ? '保存済みの URL は安全のため表示していません。変更する場合のみ、新しい Webhook URL を入力してください。' : 'Slack 通知を使うには Incoming Webhook URL を登録してください。'}</div>
+          ${showWebhookInput ? `
+            <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="https://hooks.slack.com/services/..." autocomplete="off">
+            <div class="panel-help">Slack アプリ管理画面の「Incoming Webhooks」から発行できます。登録済みの場合は空欄のまま保存すると変更されません。</div>
+          ` : `
+            <button class="btn-secondary btn-small" data-action="edit-webhook">Webhook URLを変更</button>
+          `}
         </div>
 
         <div class="section-header">
@@ -534,6 +541,7 @@
       case 'duplicate':       return doDuplicate();
       case 'add-email':       return addEmail();
       case 'remove-email':    return removeEmail(parseInt(el.getAttribute('data-index'), 10));
+      case 'edit-webhook':    return showSlackWebhookInput();
       case 'save-settings':   return saveSettingsForm();
       case 'delete-all':      return doDeleteAll();
       case 'md-bold':         return mdInsertBold();
@@ -607,7 +615,7 @@
    * ============================================================ */
   function gotoList() {
     if (!confirmDiscardEditChanges()) return;
-    setState({ screen: 'list', editTarget: null, editBaseline: null });
+    setState({ screen: 'list', editTarget: null, editBaseline: null, showSlackWebhookInput: false });
   }
 
   function gotoSettings() {
@@ -718,6 +726,12 @@
     mutateEmailList(list => list.splice(index, 1));
   }
 
+  function showSlackWebhookInput() {
+    captureSettingsInput();
+    state.showSlackWebhookInput = true;
+    render();
+  }
+
   function captureSettingsInput() {
     const slack = document.getElementById('s-slack');
     if (slack) state.settings.slackWebhookUrl = slack.value;
@@ -730,6 +744,7 @@
     await runAction(async () => {
       await call('apiSaveSettings', Object.assign({}, state.settings));
       await refreshState();
+      state.showSlackWebhookInput = false;
       return '設定を保存しました';
     }, { errorPrefix: '保存失敗' });
   }
