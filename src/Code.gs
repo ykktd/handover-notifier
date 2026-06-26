@@ -116,7 +116,8 @@ function apiGetSettings() {
 }
 
 function apiSaveSettings(settings) {
-  saveSettings(settings);
+  setSlackWebhookUrl_(settings && settings.slackWebhookUrl);
+  saveSettings(settings || {});
   return true;
 }
 

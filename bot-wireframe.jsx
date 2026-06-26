@@ -244,7 +244,8 @@ function EditScreen({ target, setScreen, setNotifications }) {
 }
 
 function SettingsScreen({ setScreen }) {
-  const [slackHook, setSlackHook] = useState("https://hooks.slack.com/services/T.../B.../...");
+  const [slackHook, setSlackHook] = useState("");
+  const [slackConfigured] = useState(true);
   const [emails, setEmails] = useState(["successor@example.com"]);
   const [newEmail, setNewEmail] = useState("");
   const [saved, setSaved] = useState(false);
@@ -263,8 +264,9 @@ function SettingsScreen({ setScreen }) {
         </div>
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "16px", marginBottom: 16 }}>
           <label style={{ ...base.label, marginBottom: 8 }}>Incoming Webhook URL</label>
-          <input style={base.input} value={slackHook} onChange={e => setSlackHook(e.target.value)} />
-          <div style={{ fontSize: 12, color: C.textSub, marginTop: 6 }}>Slack アプリ管理画面の「Incoming Webhooks」から発行できます。送信先チャンネルはWebhook URL作成時に決まります。</div>
+          <div style={{ display: "inline-flex", padding: "4px 9px", borderRadius: 999, fontSize: 12, fontWeight: 700, background: C.accentLight, color: C.accent, marginBottom: 8 }}>現在の状態：{slackConfigured ? "登録済み" : "未登録"}</div>
+          <input style={base.input} value={slackHook} placeholder={slackConfigured ? "変更するときだけ新しい URL を入力" : "https://hooks.slack.com/services/..."} onChange={e => setSlackHook(e.target.value)} />
+          <div style={{ fontSize: 12, color: C.textSub, marginTop: 6 }}>Slack アプリ管理画面の「Incoming Webhooks」から発行できます。保存後は URL を画面に表示しません。登録済みの場合は空欄のまま保存すると変更されません。</div>
         </div>
 
         <div style={base.sectionHeader}>

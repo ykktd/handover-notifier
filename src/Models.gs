@@ -3,13 +3,15 @@
  *
  * シート構成
  *   notifications: id, title, message, date, dest, sent
- *   settings:      key, value （slackWebhookUrl / gmailAddresses）
+ *   settings:      key, value （gmailAddresses / roleName など）
  *
  * 全データを「現役データ」として 1 シートで管理する設計（仕様書参照）。
  */
 
 const SHEET_NOTIFICATIONS = 'notifications';
 const SHEET_SETTINGS = 'settings';
+const SCRIPT_PROP_SLACK_WEBHOOK_URL = 'SLACK_WEBHOOK_URL';
+const LEGACY_SETTING_SLACK_WEBHOOK_URL = 'slackWebhookUrl';
 const COLS = ['id', 'title', 'message', 'date', 'dest', 'sent'];
 
 /** 初回呼び出し時にシートを作成。既にあれば何もしない。 */
@@ -33,7 +35,6 @@ function ensureSheets() {
     sSheet.appendRow(['key', 'value']);
     sSheet.getRange(1, 1, 1, 2).setFontWeight('bold');
     sSheet.setFrozenRows(1);
-    sSheet.appendRow(['slackWebhookUrl', '']);
     sSheet.appendRow(['gmailAddresses', '']);
     sSheet.appendRow(['roleName', '']);
   }
@@ -120,23 +121,63 @@ function setSent(id, sent) {
   }
 }
 
-function getSettings() {
+function getScriptProperties_() {
+  return PropertiesService.getScriptProperties();
+}
+
+function getSlackWebhookUrl_() {
+  migrateLegacySlackWebhookUrl_();
+  return getScriptProperties_().getProperty(SCRIPT_PROP_SLACK_WEBHOOK_URL) || '';
+}
+
+function setSlackWebhookUrl_(url) {
+  const trimmed = String(url || '').trim();
+  if (!trimmed) return;
+  getScriptProperties_().setProperty(SCRIPT_PROP_SLACK_WEBHOOK_URL, trimmed);
+}
+
+function hasSlackWebhookUrl_() {
+  return !!getScriptProperties_().getProperty(SCRIPT_PROP_SLACK_WEBHOOK_URL);
+}
+
+function migrateLegacySlackWebhookUrl_() {
   const sheet = getSettingsSheet_();
   const lastRow = sheet.getLastRow();
-  const settings = { slackWebhookUrl: '', gmailAddresses: '', roleName: '' };
+  if (lastRow < 2) return;
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  const props = getScriptProperties_();
+  values.forEach((row, i) => {
+    if (row[0] !== LEGACY_SETTING_SLACK_WEBHOOK_URL) return;
+    const legacyValue = String(row[1] || '').trim();
+    if (legacyValue && !props.getProperty(SCRIPT_PROP_SLACK_WEBHOOK_URL)) {
+      props.setProperty(SCRIPT_PROP_SLACK_WEBHOOK_URL, legacyValue);
+    }
+    sheet.getRange(i + 2, 2).clearContent();
+  });
+}
+
+function getSettings() {
+  migrateLegacySlackWebhookUrl_();
+  const sheet = getSettingsSheet_();
+  const lastRow = sheet.getLastRow();
+  const settings = { gmailAddresses: '', roleName: '', slackWebhookConfigured: hasSlackWebhookUrl_() };
   if (lastRow < 2) return settings;
   const values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
   values.forEach(row => {
-    if (row[0]) settings[row[0]] = row[1] || '';
+    if (!row[0] || row[0] === LEGACY_SETTING_SLACK_WEBHOOK_URL) return;
+    settings[row[0]] = row[1] || '';
   });
   return settings;
 }
 
 function saveSettings(settings) {
+  migrateLegacySlackWebhookUrl_();
   const sheet = getSettingsSheet_();
   const lastRow = sheet.getLastRow();
   if (lastRow >= 2) sheet.getRange(2, 1, lastRow - 1, 2).clearContent();
   Object.keys(settings).forEach(key => {
+    if (key === LEGACY_SETTING_SLACK_WEBHOOK_URL || key === 'slackWebhookConfigured') return;
     sheet.appendRow([key, settings[key] === undefined ? '' : settings[key]]);
   });
 }

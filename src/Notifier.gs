@@ -2,7 +2,7 @@
  * 引き継ぎ通知Bot — 通知送信 & 定期実行トリガー
  *
  * 送信先は notification.dest（'slack' / 'email'）で分岐。
- * 設定値（Webhook URL・送信先メール）は settings シートから読む。
+ * Webhook URL は Script Properties、送信先メールは settings シートから読む。
  *
  * メッセージは限定 Markdown（`**太字**` と `[表示](URL)`）を受け付け、
  * Slack には mrkdwn + Block Kit、Gmail には HTML メールに変換して送る。
@@ -11,7 +11,7 @@
 function sendNotification(notification) {
   const settings = getSettings();
   if (notification.dest === 'slack') {
-    sendToSlack_(notification, settings.slackWebhookUrl);
+    sendToSlack_(notification, getSlackWebhookUrl_());
   } else if (notification.dest === 'email') {
     sendToEmail_(notification, settings.gmailAddresses);
   } else {

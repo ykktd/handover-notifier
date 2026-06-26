@@ -529,6 +529,23 @@ a { color: var(--accent); }
   margin-top: 6px;
   line-height: 1.6;
 }
+.setting-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.setting-status.configured {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.setting-status.missing {
+  background: #fff3e0;
+  color: #8a5a00;
+}
 .email-row {
   display: flex;
   gap: 8px;

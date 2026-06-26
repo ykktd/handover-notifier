@@ -29,8 +29,8 @@ GAS プロジェクトの設定ファイル。タイムゾーン、実行ラン�
 | `apiSaveNotification(data)` | 通知の新規作成または更新 |
 | `apiDeleteNotification(id)` | 指定 ID の通知を削除 |
 | `apiSendNow(id)` | 指定 ID の通知を即時送信し、送信済みフラグを立てる |
-| `apiGetSettings()` | 設定（Webhook URL・メールアドレス・役職名）を取得 |
-| `apiSaveSettings(settings)` | 設定を保存 |
+| `apiGetSettings()` | 設定（Webhook 登録状態・メールアドレス・役職名）を取得 |
+| `apiSaveSettings(settings)` | 設定を保存。Webhook URL は入力がある場合だけ Script Properties に保存 |
 | `apiDuplicateForNewYear()` | 全通知の日付を +1 年してリセット |
 | `apiDeleteAll()` | 全通知を削除 |
 
@@ -45,6 +45,8 @@ notificationsシート列: id | title | message | date | dest | sent
 settingsシート列:       key | value
 ```
 
+Slack Incoming Webhook URL は `settings` シートには置かず、Script Properties の `SLACK_WEBHOOK_URL` に保存します。UI/API には URL 本体ではなく `slackWebhookConfigured` の真偽値だけを返します。
+
 | 関数 | 役割 |
 |---|---|
 | `ensureSheets()` | シートが存在しなければ作成し、ヘッダー行・書式を設定 |
@@ -57,8 +59,8 @@ settingsシート列:       key | value
 | `saveNotification(data)` | id なし → 新規追加、id あり → 行を上書き更新 |
 | `deleteNotification(id)` | 指定行を削除 |
 | `setSent(id, sent)` | sent 列だけを更新（送信済みフラグの立て方） |
-| `getSettings()` | settings シートをキーバリューとして読み込む |
-| `saveSettings(settings)` | settings シートを一旦クリアして全上書き |
+| `getSettings()` | settings シートと Script Properties から、UI に返せる設定だけを読み込む |
+| `saveSettings(settings)` | Webhook URL 以外の設定を settings シートへ保存 |
 | `duplicateForNewYear()` | 全行の日付を +1 年・sent を false にリセット |
 | `deleteAllNotifications()` | ヘッダー行以外の全行を削除 |
 
@@ -71,7 +73,7 @@ settingsシート列:       key | value
 | 関数 | 役割 |
 |---|---|
 | `sendNotification(notification)` | `dest` フィールドで Slack/Gmail を振り分けて送信 |
-| `sendToSlack_(notification, webhookUrl)` | Block Kit ペイロード（太字の通常テキストタイトル + divider + rich_text）を組み立てて Incoming Webhook に JSON POST |
+| `sendToSlack_(notification, webhookUrl)` | Script Properties から取得した Incoming Webhook に、Block Kit ペイロード（太字の通常テキストタイトル + divider + rich_text）を JSON POST |
 | `sendToEmail_(notification, addresses)` | CSV のアドレスをパースし、Markdown を HTML 化した `htmlBody` 付きで `MailApp.sendEmail()` |
 | `markdownToSlackRichText_(md)` | 限定 Markdown（`**太字**` / `[表示](URL)`）を Slack rich_text の要素配列に変換 |
 | `markdownToHtml_(md)` | 同じ限定 Markdown を HTML 文字列に変換（メール本文用） |
@@ -123,7 +125,7 @@ settingsシート列:       key | value
 | `renderList()` | 通知一覧画面（月別グループ） |
 | `renderCard(n)` | 通知 1 件のカード HTML |
 | `renderEdit()` | 追加/編集フォーム画面 |
-| `renderSettings()` | 設定画面（役職名・Webhook URL・メール一覧） |
+| `renderSettings()` | 設定画面（役職名・Webhook 登録状態と変更入力・メール一覧） |
 | `renderTestModal()` | 「今すぐ送信」確認モーダル |
 
 **イベント処理**
@@ -150,7 +152,7 @@ settingsシート列:       key | value
 | `addEmail()` / `removeEmail(index)` | メールアドレスの追加/削除 |
 | `captureSettingsInput()` | 設定フォームの値を state に反映 |
 | `saveSettingsForm()` | 設定を保存 |
-| `doDeleteAll()` | 二重確認 → 全データ削除 |
+| `doDeleteAll()` | 確認ダイアログ → 全データ削除 |
 | `init()` | 初回ロード時に `apiBootstrap` を呼び出して状態を初期化 |
 
 ---

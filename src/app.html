@@ -36,12 +36,13 @@
   };
 
   const MONTH_LABELS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const DEFAULT_SETTINGS = { slackWebhookUrl: '', slackWebhookConfigured: false, gmailAddresses: '', roleName: '' };
 
   /* --- ステート --- */
   let state = {
     screen: 'list',
     notifications: [],
-    settings: { slackWebhookUrl: '', gmailAddresses: '', roleName: '' },
+    settings: Object.assign({}, DEFAULT_SETTINGS),
     editTarget: null,
     editBaseline: null,
     testTarget: null,
@@ -376,8 +377,9 @@
         </div>
         <div class="panel">
           <label class="label">Incoming Webhook URL</label>
-          <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="https://hooks.slack.com/services/...">
-          <div class="panel-help">Slack アプリ管理画面の「Incoming Webhooks」から発行できます。送信先チャンネルは Webhook URL 作成時に決まります。</div>
+          <div class="setting-status ${s.slackWebhookConfigured ? 'configured' : 'missing'}">現在の状態：${s.slackWebhookConfigured ? '登録済み' : '未登録'}</div>
+          <input id="s-slack" class="input" value="${escapeHtml(s.slackWebhookUrl || '')}" placeholder="${s.slackWebhookConfigured ? '変更するときだけ新しい URL を入力' : 'https://hooks.slack.com/services/...'}" autocomplete="off">
+          <div class="panel-help">Slack アプリ管理画面の「Incoming Webhooks」から発行できます。保存後は URL を画面に表示しません。登録済みの場合は空欄のまま保存すると変更されません。</div>
         </div>
 
         <div class="section-header">
@@ -643,7 +645,7 @@
   async function refreshState() {
     const fresh = await call('apiBootstrap');
     state.notifications = fresh.notifications;
-    state.settings = fresh.settings;
+    state.settings = Object.assign({}, DEFAULT_SETTINGS, fresh.settings || {});
   }
 
   async function saveForm() {
@@ -726,14 +728,14 @@
   async function saveSettingsForm() {
     captureSettingsInput();
     await runAction(async () => {
-      await call('apiSaveSettings', state.settings);
+      await call('apiSaveSettings', Object.assign({}, state.settings));
+      await refreshState();
       return '設定を保存しました';
     }, { errorPrefix: '保存失敗' });
   }
 
   async function doDeleteAll() {
-    if (!confirm('全ての通知データを削除します。本当によろしいですか？')) return;
-    if (!confirm('元に戻せません。本当に削除しますか？')) return;
+    if (!confirm('全ての通知データを削除します。この操作は元に戻せません。このまま削除しますか？')) return;
     await runAction(async () => {
       await callWithTimeout_('apiDeleteAll', LONG_TIMEOUT_MS);
       state.notifications = [];
@@ -751,7 +753,7 @@
       setState({
         loading: false,
         notifications: data.notifications || [],
-        settings: data.settings || { slackWebhookUrl: '', gmailAddresses: '', roleName: '' }
+        settings: Object.assign({}, DEFAULT_SETTINGS, data.settings || {})
       });
     } catch (e) {
       root().innerHTML = '<div class="loader" style="color:#c0392b">初期化エラー: ' + escapeHtml(e.message) + '</div>';
