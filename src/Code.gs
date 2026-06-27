@@ -96,7 +96,13 @@ function apiBootstrap() {
   return {
     notifications: listNotifications(),
     settings: getSettings(),
+    adminSpreadsheetUrl: getAdminSpreadsheetUrl_(),
   };
+}
+
+function getAdminSpreadsheetUrl_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss ? ss.getUrl() : '';
 }
 
 function apiSaveNotification(data) {
