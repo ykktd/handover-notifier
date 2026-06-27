@@ -30,24 +30,33 @@ function sendToSlack_(notification, webhookUrl) {
   if (rawMessage.length > 3000) rawMessage = rawMessage.slice(0, 2999) + '…';
 
   // rich_text を使うことで通常サイズのテキストのまま太字を扱い、Slack mrkdwn の CJK 境界問題も回避する
-  const payload = {
-    text: title,
-    blocks: [
-      {
-        type: 'rich_text',
-        elements: [
-          { type: 'rich_text_section', elements: [{ type: 'text', text: title, style: { bold: true } }] }
-        ]
-      },
-      { type: 'divider' },
-      {
-        type: 'rich_text',
-        elements: [
-          { type: 'rich_text_section', elements: markdownToSlackRichText_(rawMessage) }
-        ]
-      }
-    ]
-  };
+  const blocks = [
+    {
+      type: 'rich_text',
+      elements: [
+        { type: 'rich_text_section', elements: [{ type: 'text', text: title, style: { bold: true } }] }
+      ]
+    },
+    { type: 'divider' },
+    {
+      type: 'rich_text',
+      elements: [
+        { type: 'rich_text_section', elements: markdownToSlackRichText_(rawMessage) }
+      ]
+    }
+  ];
+
+  const webAppUrl = getWebAppUrl_();
+  if (webAppUrl) {
+    blocks.push({
+      type: 'context',
+      elements: [
+        { type: 'mrkdwn', text: '通知内容の確認や編集は <' + webAppUrl + '|管理画面> から行えます。' }
+      ]
+    });
+  }
+
+  const payload = { text: title, blocks: blocks };
 
   const res = UrlFetchApp.fetch(webhookUrl, {
     method: 'post',
@@ -71,16 +80,23 @@ function sendToEmail_(notification, addresses) {
   const rawMessage = String(notification.message || '');
   const htmlMessage = markdownToHtml_(rawMessage);
 
+  const webAppUrl = getWebAppUrl_();
+  const footerHtml = webAppUrl
+    ? '<p style="margin:20px 0 0;font-size:12px;color:#666">通知内容の確認や編集は<a href="' + webAppUrl + '" target="_blank" rel="noopener">管理画面</a>から行えます。</p>'
+    : '';
+  const footerText = webAppUrl ? '\n\n通知内容の確認や編集は管理画面から行えます: ' + webAppUrl : '';
+
   const htmlBody =
     '<div style="font-family:\'Noto Sans JP\',\'Hiragino Sans\',sans-serif;color:#1a1a1a;line-height:1.8;max-width:640px">' +
       '<h2 style="font-size:18px;margin:0 0 14px">' + escapeHtml_(title) + '</h2>' +
       '<div style="white-space:pre-wrap;font-size:14px">' + htmlMessage + '</div>' +
+      footerHtml +
     '</div>';
 
   MailApp.sendEmail({
     to: to,
     subject: '【引き継ぎ通知】' + title,
-    body: rawMessage,
+    body: rawMessage + footerText,
     htmlBody: htmlBody
   });
 }

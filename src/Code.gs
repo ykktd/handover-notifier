@@ -28,6 +28,11 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+/** デプロイ済みウェブアプリのURLを返す（Slack通知のリンク埋め込みなどで使用） */
+function getWebAppUrl_() {
+  return ScriptApp.getService().getUrl();
+}
+
 function getFaviconUrl_() {
   // Google ドライブのファイルID
   // 元のリンク: https://drive.google.com/file/d/1_cDpKMQqB7oxOqtjRdaVpVaccOQZlD6B/view?usp=drive_link
